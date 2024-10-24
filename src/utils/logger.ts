@@ -24,6 +24,16 @@ interface LogAnalytics {
 interface SensitiveFields {
   [key: string]: string[];
 }
+interface ApiLogMetadata {
+  requestType: string;
+  endpoint: string;
+  browser: string;
+  userAgent: string;
+  responseTime?: number;
+  statusCode: number;
+  requestId?: string | string[];
+  clientIp?: string;
+}
 
 enum LogLevel {
   ERROR = "ERROR",
@@ -88,6 +98,7 @@ class Logger {
         "hashed_secret_key",
         "payment_response_hash_key",
         "payment_hash_key",
+        "tag"
       ],
     };
 
@@ -142,22 +153,18 @@ class Logger {
       let responseTimeCount = 0;
 
       logs.forEach((log) => {
-   
         this.analytics.logsByLevel[log.level] =
           (this.analytics.logsByLevel[log.level] || 0) + 1;
 
-     
         if (log.source) {
           this.analytics.logsBySource[log.source] =
             (this.analytics.logsBySource[log.source] || 0) + 1;
         }
 
-
         if (log.level === LogLevel.ERROR) {
           errorCount++;
         }
 
-    
         if (log.metadata?.responseTime) {
           totalResponseTime += log.metadata.responseTime;
           responseTimeCount++;
@@ -172,7 +179,6 @@ class Logger {
           : undefined;
       this.analytics.lastAnalyticsUpdate = new Date().toISOString();
 
-  
       const analyticsLog = `[${new Date().toISOString()}] ANALYTICS ${JSON.stringify(
         this.analytics
       )}\n`;
@@ -335,8 +341,43 @@ class Logger {
     const maskedMetadata = this.maskSensitiveData(metadata, "auth");
     await this.info(message, maskedMetadata, "AUTH");
   }
-
+  async logApi(
+    level: string,
+    message: string,
+    metadata: ApiLogMetadata,
+    source: string = "API"
+  ): Promise<void> {
+    switch (level) {
+      case "INFO":
+        level = LogLevel.INFO;
+        break;
+      case "ERROR":
+        level = LogLevel.ERROR;
+        break;
+      case "WARN":
+        level = LogLevel.WARN;
+        break;
+      default:
+        level = LogLevel.DEBUG;
+        break;
+    }
+      
+    const logEntry: LogEntry = {
+      level,
+      message,
+      metadata: {
+        ...metadata,
+        responseTime: `${metadata.responseTime}ms`,
+        timestamp: new Date().toISOString(),
+      },
+      timestamp: new Date().toISOString(),
+      correlationId: this.generateCorrelationId(),
+      source,
+    };
+    await this.writeLog(logEntry);
+  }
   async info(message: string, metadata: any, source?: string): Promise<void> {
+    
     const logEntry: LogEntry = {
       level: LogLevel.INFO,
       message,
