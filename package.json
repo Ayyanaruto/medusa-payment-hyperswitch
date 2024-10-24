@@ -29,7 +29,7 @@
     "@medusajs/cache-inmemory": "1.8.11",
     "@medusajs/cache-redis": "^1.9.2",
     "@medusajs/event-bus-local": "1.9.9",
-    "@medusajs/event-bus-redis": "^1.8.14",
+    "@medusajs/event-bus-redis": "^2.0.0",
     "@medusajs/file-local": "1.0.4",
     "@medusajs/icons": "^2.0.0",
     "@medusajs/medusa": "^1.20.9",
