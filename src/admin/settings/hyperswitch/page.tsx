@@ -8,7 +8,13 @@ import HyperswitchForm  from "../../components/HyperSwitchForm";
 import icons from "../../icons";
 
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 const CustomSettingPage = () => {
   return (
     <MedusaProvider

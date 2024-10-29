@@ -18,28 +18,29 @@ interface DecryptionInput {
   iv: string;
 }
 
-export const encrypt = (key: string, plaintext: string): EncryptionResult => {
-  try{
-  performance.mark('encryption-start');
-  const iv = crypto.randomBytes(12).toString("base64");
-  const cipher = crypto.createCipheriv(
-    "aes-256-gcm",
-    Buffer.from(key, "base64"),
-    Buffer.from(iv, "base64")
-  );
-  let ciphertext = cipher.update(plaintext, "utf8", "base64");
-  ciphertext += cipher.final("base64");
-  const tag = cipher.getAuthTag();
-  performance.mark('encryption-end');
-  logger.logEncryption("Encryption successful", { ciphertext, tag, iv });
-  return { ciphertext, tag, iv };
-} catch (error) {
-  logger.error("Encryption failed:", error.message,"ENCRYPTION");
-  throw new MedusaError(
+export const encrypt = async (key: string, plaintext: string): Promise<EncryptionResult> => {
+  try {
+    performance.mark('encryption-start');
+    const iv = crypto.randomBytes(12).toString("base64");
+    const cipher = crypto.createCipheriv(
+      "aes-256-gcm",
+      Buffer.from(key, "base64"),
+      Buffer.from(iv, "base64")
+    );
+    let ciphertext = cipher.update(plaintext, "utf8", "base64");
+    ciphertext += cipher.final("base64");
+    const tag = cipher.getAuthTag();
+    performance.mark('encryption-end');
+    logger.logEncryption("Encryption successful", { ciphertext, tag, iv });
+    return { ciphertext, tag, iv };
+  } catch (error) {
+    logger.error("Encryption failed:", error.message, "ENCRYPTION");
+    throw new MedusaError(
       MedusaError.Types.DB_ERROR,
       "Unable to encrypt data"
     );
-}}
+  }
+};
 
 
 export const decrypt = async (text: DecryptionInput): Promise<string> => {
