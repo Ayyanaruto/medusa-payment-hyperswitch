@@ -224,34 +224,63 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
     }
   }
 
-  private async handleCancelPayment(
-    paymentSessionData: Record<string, unknown>
-  ): Promise<PaymentProcessorError | PaymentProcessorSessionResponse["session_data"]> {
-    const { payment_id } = paymentSessionData as { payment_id: string };
 
-    try {
-      await this.initializeHyperSwitch();
-      const paymentData = await this.hyperswitch.transactions.cancel({
-        payment_id,
-      });
-      return {
-        data: filterNull(paymentData.data),
-      };
-    } catch (error) {
-      return this.buildError("Failed to cancel payment", error);
-    }
-  }
 
   async deletePayment(
     paymentSessionData: Record<string, unknown>
   ): Promise<PaymentProcessorError | PaymentProcessorSessionResponse["session_data"]> {
-    return this.handleCancelPayment(paymentSessionData);
+   const { payment_id } = paymentSessionData as { payment_id: string };
+
+   try {
+     await this.initializeHyperSwitch();
+     const paymentData = await this.hyperswitch.transactions.cancel({
+       payment_id,
+     });
+     return {
+       data: filterNull(paymentData.data),
+     };
+   } catch (error) {
+     return this.buildError("Failed to cancel payment", error);
+   }
   }
 
   async cancelPayment(
     paymentSessionData: Record<string, unknown>
   ): Promise<PaymentProcessorError | PaymentProcessorSessionResponse["session_data"]> {
-    return this.handleCancelPayment(paymentSessionData);
+    const { payment_id } = paymentSessionData.data as { payment_id: string };
+
+    try {
+      await this.initializeHyperSwitch();
+      const fetchPayment = await this.hyperswitch.transactions.fetch({
+        payment_id,
+      });
+
+      if (this.canCancelPayment(fetchPayment.data)) {
+        const paymentData = await this.hyperswitch.transactions.cancel({
+          payment_id,
+        });
+        return {
+          data: filterNull(paymentData.data),
+        };
+      } else {
+        return this.buildError("Failed to cancel payment", {
+          code: "400",
+          detail: "Payment cannot be cancelled in its current status",
+        });
+      }
+    } catch (error) {
+      return this.buildError("Failed to cancel payment", error);
+    }
+  }
+
+  private canCancelPayment(paymentData: any): boolean {
+    const cancellableStatuses = [
+      TransactionStatus.REQUIRES_PAYMENT_METHOD,
+      TransactionStatus.REQUIRES_CAPTURE,
+      TransactionStatus.REQUIRES_CONFIRMATION,
+      TransactionStatus.REQUIRES_CUSTOMER_ACTION,
+    ];
+    return cancellableStatuses.includes(paymentData.status);
   }
 
   async refundPayment(
