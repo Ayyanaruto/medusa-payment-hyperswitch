@@ -7,7 +7,7 @@
   },
   "users": [
     {
-      "email": "admin@medusa-test.com",
+      "email": "admin@medusa2-test.com",
       "password": "supersecret"
     }
   ],
@@ -195,6 +195,7 @@
             }
           ],
           "inventory_quantity": 100,
+          "calculated_price": 150,
           "manage_inventory": true
         },
         {
@@ -426,6 +427,7 @@
             }
           ],
           "inventory_quantity": 100,
+          "calculated_price": 150,
           "manage_inventory": true
         },
         {
@@ -576,6 +578,7 @@
             }
           ],
           "inventory_quantity": 100,
+          "calculated_price": 150,
           "manage_inventory": true
         }
       ]
@@ -646,6 +649,7 @@
             }
           ],
           "inventory_quantity": 100,
+          "calculated_price": 150,
           "manage_inventory": true
         },
         {
@@ -799,6 +803,7 @@
             }
           ],
           "inventory_quantity": 100,
+          "calculated_price": 150,
           "manage_inventory": true
         }
       ]
@@ -912,6 +917,7 @@
             }
           ],
           "inventory_quantity": 100,
+          "calculated_price": 150,
           "manage_inventory": true
         }
       ]
@@ -961,6 +967,7 @@
             }
           ],
           "inventory_quantity": 100,
+          "calculated_price":150,
           "manage_inventory": true
         }
       ]

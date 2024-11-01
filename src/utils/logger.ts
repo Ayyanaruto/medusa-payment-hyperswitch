@@ -33,6 +33,8 @@ interface ApiLogMetadata {
   statusCode: number;
   requestId?: string | string[];
   clientIp?: string;
+  connector?: string;
+  payment_method?: Object ;
 }
 
 enum LogLevel {

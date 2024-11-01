@@ -1,14 +1,29 @@
-import  {  PaymentProcessorSessionResponse } from "@medusajs/medusa";
+import { PaymentProcessorSessionResponse } from "@medusajs/medusa";
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import axiosRetry from "axios-retry";
- 
-export const HYPERSWITCH_API_PATH = process.env.NODE === "production" ? "https://api.hyperswitch.io" : "https://sandbox.hyperswitch.io";
+import Logger from "../utils/logger";
+
+export const HYPERSWITCH_API_PATH = process.env.NODE_ENV === "production" ? "https://api.hyperswitch.io" : "https://sandbox.hyperswitch.io";
 
 type HTTPMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";
 
 interface HyperSwitchResponse<T> {
     status: number;
     data: T;
+}
+
+export enum TransactionStatus {
+    SUCCEEDED = "succeeded",
+    FAILED = "failed",
+    CANCELLED = "cancelled",
+    PROCESSING = "processing",
+    REQUIRES_CUSTOMER_ACTION = "requires_customer_action",
+    REQUIRES_MERCHANT_ACTION = "requires_merchant_action",
+    REQUIRES_PAYMENT_METHOD = "requires_payment_method",
+    REQUIRES_CONFIRMATION = "requires_confirmation",
+    REQUIRES_CAPTURE = "requires_capture",
+    PARTIALLY_CAPTURED = "partially_captured",
+    PARTIALLY_CAPTURED_AND_CAPTURABLE = "partially_captured_and_capturable",
 }
 
 interface RequestOptions {
@@ -20,48 +35,26 @@ interface RequestOptions {
 }
 
 interface TransactionCreateParams {
-  amount: number;
-  currency: string;
-  payment_experience?: string;
-  capture_method?: string;
-  setup_future_usage: string;
-  billing?: Record<string, any>;
-  customer?: Record<string, any>;
-  metadata?: Record<string, any>;
-}
-
-export enum PaymentMethod {
-    Card = "card",
-    CardRedirect = "card_redirect",
-    PayLater = "pay_later",
-    Wallet = "wallet",
-    BankRedirect = "bank_redirect",
-    BankTransfer = "bank_transfer",
-    Crypto = "crypto",
-    BankDebit = "bank_debit",
-    Reward = "reward",
-    RealTimePayment = "real_time_payment",
-    UPI = "upi",
-    Voucher = "voucher",
-    GiftCard = "gift_card",
-    OpenBanking = "open_banking",
+    amount: number;
+    currency: string;
+    payment_experience?: string;
+    capture_method?: string;
+    setup_future_usage: string;
+    billing?: Record<string, any>;
+    customer?: Record<string, any>;
+    metadata?: Record<string, any>;
 }
 
 interface TransactionUpdateParams {
-  payment_id: string;
-  payment_method?: PaymentMethod;
-  payment_experience?: string;
-  confirm?: boolean;
-  amount: number;
-  billing?: Record<string, any>;
-  customer?: Record<string, any>;
-  metadata?: Record<string, any>;
-  return_url?: string;
-  customer_id?: string;
-}
-
-interface TransactionConfirmParams {
     payment_id: string;
+    payment_experience?: string;
+    confirm?: boolean;
+    amount: number;
+    billing?: Record<string, any>;
+    customer?: Record<string, any>;
+    metadata?: Record<string, any>;
+    return_url?: string;
+    customer_id?: string;
 }
 
 interface TransactionFetchParams {
@@ -87,26 +80,28 @@ interface TransactionResponse extends PaymentProcessorSessionResponse {
     refunded_at: string;
     voided_at: string;
     error?: Record<string, any>;
-
-    
+    browser_info?: string;
+    payment_method?: string;
+    connector?: string;
 }
-export default class HyperSwitch {
-    private readonly apiKey: string;
+
+class HyperSwitchApiClient {
     private readonly axios: AxiosInstance;
+    private readonly logger: Logger;
 
     constructor(apiKey: string) {
-        this.apiKey = apiKey;
         this.axios = axios.create({
             baseURL: HYPERSWITCH_API_PATH,
             headers: {
                 "Content-Type": "application/json",
-                "api-key": this.apiKey,
+                "api-key": apiKey,
             },
         });
         axiosRetry(this.axios, { retries: 3 });
+        this.logger = new Logger();
     }
 
-    private async requestHyperSwitchApi<T>(options: RequestOptions): Promise<HyperSwitchResponse<T>> {
+    async request<T>(options: RequestOptions): Promise<HyperSwitchResponse<T>> {
         const config: AxiosRequestConfig = {
             method: options.method,
             url: options.path,
@@ -116,52 +111,82 @@ export default class HyperSwitch {
         };
 
         try {
+            const start = Date.now();
             const response = await this.axios.request<T>(config);
+            const responseTime = Date.now() - start;
+            this.logApiResponse(options, response, responseTime);
             return {
                 status: response.status,
                 data: response.data,
             };
         } catch (error) {
-            if (axios.isAxiosError(error)) {
-                throw new Error(
-                    `Error from HyperSwitch with status code ${error.response?.status}: ${error.response}`
-                );
-            }
-            throw new Error(`Error from HyperSwitch API: ${error.message}`);
+            this.handleError(error);
         }
     }
 
-    transactions = {
-        create: async (params: TransactionCreateParams): Promise<HyperSwitchResponse<TransactionResponse>> => {
-            console.log("Creating....")
-            return await this.requestHyperSwitchApi<TransactionResponse>({
-                path: "/payments",
-                method: "POST",
-                body: params,
-            });
-        },
-        update: async (params: TransactionUpdateParams): Promise<HyperSwitchResponse<TransactionResponse>> => {
-            console.log("Updating....")
-            const resp=await this.requestHyperSwitchApi<TransactionResponse>({
-                path: `/payments/${params.payment_id}`,
-                method: "POST",
-                body: params,
-            });
-            return resp;
-        },
-        confirm: async (params: TransactionConfirmParams): Promise<HyperSwitchResponse<TransactionResponse>> => {
-            return this.requestHyperSwitchApi<TransactionResponse>({
-                path: `/payments/${params.payment_id}/confirm`,
-                method: "POST",
-                body: params,
-            });
-        },
-        fetch: async (params: TransactionFetchParams): Promise<HyperSwitchResponse<TransactionResponse>> => {
-            return this.requestHyperSwitchApi<TransactionResponse>({
-                path: `/payments/${params.payment_id}`,
-                method: "GET",
-            });
-        },
-    };
+    private logApiResponse<T>(options: RequestOptions, response: any, responseTime: number) {
+        this.logger.logApi("INFO", "Request to HyperSwitch API", {
+            requestType: options.method,
+            endpoint: options.path,
+            connector: (response.data as TransactionResponse).connector,
+            payment_method: (response.data as TransactionResponse).payment_method,
+            statusCode: response.status,
+            browser: (response.data as TransactionResponse).browser_info || 'Unknown',
+            userAgent: response.headers['user-agent'] || 'Unknown',
+            clientIp: response.headers['x-forwarded-for'] || 'Unknown',
+            requestId: response.headers['x-request-id'],
+            responseTime
+        });
+    }
+
+    private handleError(error: any): never {
+        if (axios.isAxiosError(error)) {
+            this.logger.error(`Error from HyperSwitch API: ${error.response?.status}`, JSON.stringify(error.response?.data));
+            throw new Error(
+                `Error from HyperSwitch with status code ${error.response?.status}: ${JSON.stringify(error.response?.data)}`
+            );
+        }
+        throw new Error(`Error from HyperSwitch API: ${error.message}`);
+    }
 }
- 
+
+class HyperSwitchTransactions {
+    private readonly apiClient: HyperSwitchApiClient;
+
+    constructor(apiClient: HyperSwitchApiClient) {
+        this.apiClient = apiClient;
+    }
+
+    async create(params: TransactionCreateParams): Promise<HyperSwitchResponse<TransactionResponse>> {
+        return this.apiClient.request<TransactionResponse>({
+            path: "/payments",
+            method: "POST",
+            body: params,
+        });
+    }
+
+    async update(params: TransactionUpdateParams): Promise<HyperSwitchResponse<TransactionResponse>> {
+        return this.apiClient.request<TransactionResponse>({
+            path: `/payments/${params.payment_id}`,
+            method: "POST",
+            body: params,
+        });
+    }
+
+    async fetch(params: TransactionFetchParams): Promise<HyperSwitchResponse<TransactionResponse>> {
+        return this.apiClient.request<TransactionResponse>({
+            path: `/payments/${params.payment_id}`,
+            method: "GET",
+        });
+    }
+}
+
+export default class HyperSwitch {
+    private readonly apiClient: HyperSwitchApiClient;
+    public readonly transactions: HyperSwitchTransactions;
+
+    constructor(apiKey: string) {
+        this.apiClient = new HyperSwitchApiClient(apiKey);
+        this.transactions = new HyperSwitchTransactions(this.apiClient);
+    }
+}
