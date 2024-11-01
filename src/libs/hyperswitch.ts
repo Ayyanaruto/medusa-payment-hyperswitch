@@ -1,5 +1,5 @@
 import { PaymentProcessorSessionResponse } from "@medusajs/medusa";
-import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import axiosRetry from "axios-retry";
 import Logger from "../utils/logger";
 
@@ -30,8 +30,8 @@ interface RequestOptions {
     path: string;
     method: HTTPMethod;
     headers?: Record<string, string>;
-    body?: Record<string, any>;
-    query?: Record<string, any>;
+    body?: Record<string, unknown> | TransactionCreateParams | TransactionUpdateParams;
+    query?: Record<string, unknown>;
 }
 
 interface TransactionCreateParams {
@@ -39,10 +39,11 @@ interface TransactionCreateParams {
     currency: string;
     payment_experience?: string;
     capture_method?: string;
+    confirm?: boolean;
     setup_future_usage: string;
-    billing?: Record<string, any>;
-    customer?: Record<string, any>;
-    metadata?: Record<string, any>;
+    billing?: Record<string, unknown>;
+    customer?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
 }
 
 interface TransactionUpdateParams {
@@ -50,15 +51,17 @@ interface TransactionUpdateParams {
     payment_experience?: string;
     confirm?: boolean;
     amount: number;
-    billing?: Record<string, any>;
-    customer?: Record<string, any>;
-    metadata?: Record<string, any>;
+    billing?: Record<string, unknown>;
+    customer?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
     return_url?: string;
     customer_id?: string;
+    capture_method?: string;
 }
 
 interface TransactionFetchParams {
     payment_id: string;
+    amount_to_capture?: number;
 }
 
 interface TransactionResponse extends PaymentProcessorSessionResponse {
@@ -69,9 +72,9 @@ interface TransactionResponse extends PaymentProcessorSessionResponse {
     status: string;
     capture_method: string;
     setup_future_usage: string;
-    billing?: Record<string, any>;
-    customer?: Record<string, any>;
-    metadata?: Record<string, any>;
+    billing?: Record<string, unknown>;
+    customer?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
     created_at: string;
     updated_at: string;
     expires_at: string;
@@ -79,25 +82,25 @@ interface TransactionResponse extends PaymentProcessorSessionResponse {
     captured_at: string;
     refunded_at: string;
     voided_at: string;
-    error?: Record<string, any>;
+    error?: Record<string, unknown>;
     browser_info?: string;
     payment_method?: string;
     connector?: string;
 }
 
 class HyperSwitchApiClient {
-    private readonly axios: AxiosInstance;
+    private readonly axiosInstance: AxiosInstance;
     private readonly logger: Logger;
 
     constructor(apiKey: string) {
-        this.axios = axios.create({
+        this.axiosInstance = axios.create({
             baseURL: HYPERSWITCH_API_PATH,
             headers: {
                 "Content-Type": "application/json",
                 "api-key": apiKey,
             },
         });
-        axiosRetry(this.axios, { retries: 3 });
+        axiosRetry(this.axiosInstance, { retries: 3 });
         this.logger = new Logger();
     }
 
@@ -112,7 +115,7 @@ class HyperSwitchApiClient {
 
         try {
             const start = Date.now();
-            const response = await this.axios.request<T>(config);
+            const response = await this.axiosInstance.request<T>(config);
             const responseTime = Date.now() - start;
             this.logApiResponse(options, response, responseTime);
             return {
@@ -120,33 +123,44 @@ class HyperSwitchApiClient {
                 data: response.data,
             };
         } catch (error) {
-            this.handleError(error);
+            this.handleError(error, options);
         }
     }
 
-    private logApiResponse<T>(options: RequestOptions, response: any, responseTime: number) {
+    private logApiResponse<T>(options: RequestOptions, response: AxiosResponse<T>, responseTime: number): void {
+        const responseData = response.data as unknown as TransactionResponse;
         this.logger.logApi("INFO", "Request to HyperSwitch API", {
             requestType: options.method,
             endpoint: options.path,
-            connector: (response.data as TransactionResponse).connector,
-            payment_method: (response.data as TransactionResponse).payment_method,
+            requestBody: options.body,
+            requestHeaders: options.headers,
+            queryParams: options.query,
+            responseBody: response.data,
+            responseHeaders: response.headers,
             statusCode: response.status,
-            browser: (response.data as TransactionResponse).browser_info || 'Unknown',
-            userAgent: response.headers['user-agent'] || 'Unknown',
-            clientIp: response.headers['x-forwarded-for'] || 'Unknown',
+            responseTime,
+            connector: responseData.connector,
+            payment_method: responseData.payment_method,
+            browser: responseData.browser_info ?? 'Unknown',
+            userAgent: response.headers['user-agent'] ?? 'Unknown',
+            clientIp: response.headers['x-forwarded-for'] ?? 'Unknown',
             requestId: response.headers['x-request-id'],
-            responseTime
         });
     }
 
-    private handleError(error: any): never {
+    private handleError(error: unknown, options: RequestOptions): never {
         if (axios.isAxiosError(error)) {
-            this.logger.error(`Error from HyperSwitch API: ${error.response?.status}`, JSON.stringify(error.response?.data));
+            this.logger.error(`Error from HyperSwitch API: ${error.response?.status}`, {
+                requestOptions: options,
+                responseData: error.response?.data,
+                responseHeaders: error.response?.headers,
+                requestConfig: error.config,
+            });
             throw new Error(
                 `Error from HyperSwitch with status code ${error.response?.status}: ${JSON.stringify(error.response?.data)}`
             );
         }
-        throw new Error(`Error from HyperSwitch API: ${error.message}`);
+        throw new Error(`Error from HyperSwitch API: ${(error as Error).message}`);
     }
 }
 
@@ -177,6 +191,36 @@ class HyperSwitchTransactions {
         return this.apiClient.request<TransactionResponse>({
             path: `/payments/${params.payment_id}`,
             method: "GET",
+        });
+    }
+
+    async capture(params: TransactionFetchParams): Promise<HyperSwitchResponse<TransactionResponse>> {
+        return this.apiClient.request<TransactionResponse>({
+            path: `/payments/${params.payment_id}/capture`,
+            method: "POST",
+            body: {
+                amount_to_capture: params.amount_to_capture,
+            },
+        });
+    }
+
+    async cancel(params: TransactionFetchParams): Promise<HyperSwitchResponse<TransactionResponse>> {
+        return this.apiClient.request<TransactionResponse>({
+            path: `/payments/${params.payment_id}/cancel`,
+            method: "POST",
+            body: {
+                cancellation_reason: "requested_by_customer",
+            },
+        });
+    }
+
+    async refund(params: TransactionFetchParams): Promise<HyperSwitchResponse<TransactionResponse>> {
+        return this.apiClient.request<TransactionResponse>({
+            path: `/refunds`,
+            method: "POST",
+            body: {
+                payment_id: params.payment_id,
+            },
         });
     }
 }

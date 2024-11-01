@@ -35,6 +35,11 @@ interface ApiLogMetadata {
   clientIp?: string;
   connector?: string;
   payment_method?: Object ;
+  requestBody?: Object;
+  requestHeaders?: Object;
+  queryParams?: Object;
+  responseBody?: Object;
+  responseHeaders?: Object;
 }
 
 enum LogLevel {

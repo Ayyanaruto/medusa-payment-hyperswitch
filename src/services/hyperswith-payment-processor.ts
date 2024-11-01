@@ -7,7 +7,6 @@ import {
 } from "@medusajs/medusa";
 
 import { MedusaError, MedusaErrorTypes } from "@medusajs/utils";
-
 import CredentialsService from "./credentials";
 import { CredentialsType } from "../types";
 import HyperSwitch, { TransactionStatus } from "../libs/hyperswitch";
@@ -27,18 +26,15 @@ interface PaymentProcessorError {
 
 abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
   protected readonly credentialsService: CredentialsService;
-  protected hyperswitch: HyperSwitch;
+  protected hyperswitch!: HyperSwitch;
   protected readonly cartService: CartService;
-  private captureMethod: string;
-  private setupFutureUsage: boolean;
+  private captureMethod!: string;
+  private setupFutureUsage!: boolean;
   protected readonly logger: Logger;
   static readonly identifier = "hyperswitch";
 
   constructor(
-    {
-      credentialsService,
-      cartService,
-    }: HyperswitchPaymentProcessorDependencies,
+    { credentialsService, cartService }: HyperswitchPaymentProcessorDependencies,
     context: any
   ) {
     super(context);
@@ -70,17 +66,14 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
   }
 
   private async createTransaction(context: PaymentProcessorContext) {
+    const { amount, currency_code, resource_id } = context;
     try {
-      const { amount, currency_code, resource_id } = context;
-
       const response = await this.hyperswitch.transactions.create({
         amount,
         currency: currency_code.toUpperCase(),
-        setup_future_usage: "on_session",
+        setup_future_usage: this.setupFutureUsage ? "on_session" : "off_session",
         capture_method: this.captureMethod,
-        metadata: {
-          cart_id: resource_id,
-        },
+        metadata: { cart_id: resource_id },
       });
       return this.formatResponse(response);
     } catch (error) {
@@ -92,10 +85,11 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
   }
 
   private async updateTransaction(context: PaymentProcessorContext) {
+    const { amount, billing_address, customer, paymentSessionData } = context;
     try {
-      const { amount, billing_address, customer, paymentSessionData } = context;
       const response = await this.hyperswitch.transactions.update({
         payment_id: paymentSessionData.payment_id as string,
+        capture_method: this.captureMethod,
         billing: {
           address: {
             city: billing_address.city,
@@ -157,20 +151,10 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
     const { data } = context;
     try {
       const paymentData = await this.hyperswitch.transactions.fetch({
-        payment_id: data.payment_id as string,
+        payment_id: data?.payment_id as string,
       });
-      
-      console.log("getPaymentStatus", paymentData.data);
-      switch (paymentData.data.status) {
-        case TransactionStatus.SUCCEEDED:
-          return PaymentSessionStatus.AUTHORIZED;
-        case TransactionStatus.FAILED:
-          return PaymentSessionStatus.ERROR;
-        case TransactionStatus.REQUIRES_CAPTURE:
-          return PaymentSessionStatus.REQUIRES_MORE;
-        default:
-          return PaymentSessionStatus.PENDING;
-      }
+
+      return this.mapTransactionStatusToPaymentSessionStatus(paymentData.data.status as TransactionStatus);
     } catch (error) {
       return PaymentSessionStatus.ERROR;
     }
@@ -180,7 +164,11 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
     paymentSessionData: Record<string, unknown>
   ): Promise<Record<string, unknown> | PaymentProcessorError> {
     try {
-      return paymentSessionData;
+      const { payment_id } = paymentSessionData;
+      const response = await this.hyperswitch.transactions.capture({
+        payment_id: payment_id as string,
+      });
+      return this.handleResponse(response, "Failed to capture payment");
     } catch (error) {
       return this.buildError("Failed to capture payment", error);
     }
@@ -209,28 +197,10 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
       });
       const data = filterNull(paymentData.data);
 
-      switch (paymentData.data.status) {
-        case TransactionStatus.SUCCEEDED:
-          return {
-            status: PaymentSessionStatus.AUTHORIZED,
-            data: data as Record<string, unknown>,
-          };
-        case TransactionStatus.FAILED:
-          return {
-            status: PaymentSessionStatus.ERROR,
-            data: data as Record<string, unknown>,
-          };
-        case TransactionStatus.REQUIRES_CAPTURE:
-          return {
-            status: PaymentSessionStatus.REQUIRES_MORE,
-            data: data as Record<string, unknown>,
-          };
-        default:
-          return {
-            status: PaymentSessionStatus.PENDING,
-            data: data as Record<string, unknown>,
-          };
-      }
+      return {
+        status: this.mapTransactionStatusToPaymentSessionStatus(paymentData.data.status as TransactionStatus),
+        data: data as Record<string, unknown>,
+      };
     } catch (error) {
       return this.buildError("Failed to authorize payment", error);
     }
@@ -251,6 +221,105 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
       };
     } catch (error) {
       return this.buildError("Failed to retrieve payment", error);
+    }
+  }
+
+  private async handleCancelPayment(
+    paymentSessionData: Record<string, unknown>
+  ): Promise<PaymentProcessorError | PaymentProcessorSessionResponse["session_data"]> {
+    const { payment_id } = paymentSessionData as { payment_id: string };
+
+    try {
+      await this.initializeHyperSwitch();
+      const paymentData = await this.hyperswitch.transactions.cancel({
+        payment_id,
+      });
+      return {
+        data: filterNull(paymentData.data),
+      };
+    } catch (error) {
+      return this.buildError("Failed to cancel payment", error);
+    }
+  }
+
+  async deletePayment(
+    paymentSessionData: Record<string, unknown>
+  ): Promise<PaymentProcessorError | PaymentProcessorSessionResponse["session_data"]> {
+    return this.handleCancelPayment(paymentSessionData);
+  }
+
+  async cancelPayment(
+    paymentSessionData: Record<string, unknown>
+  ): Promise<PaymentProcessorError | PaymentProcessorSessionResponse["session_data"]> {
+    return this.handleCancelPayment(paymentSessionData);
+  }
+
+  async refundPayment(
+    paymentSessionData: Record<string, unknown>
+  ): Promise<PaymentProcessorError | PaymentProcessorSessionResponse["session_data"]> {
+    const { payment_id, amount, currency } = paymentSessionData.data as {
+      payment_id: string;
+      amount: number;
+      currency: string;
+    };
+
+    try {
+      await this.initializeHyperSwitch();
+      const fetchPayment = await this.hyperswitch.transactions.fetch({
+        payment_id,
+      });
+
+      if (
+        this.canRefundPayment(fetchPayment.data, amount, currency)
+      ) {
+        const paymentData = await this.hyperswitch.transactions.refund({
+          payment_id,
+        });
+        return {
+          data: filterNull(paymentData.data),
+        };
+      } else {
+        return this.buildError("Failed to refund payment", {
+          code: "400",
+          detail: "Payment cannot be refunded or amount is invalid",
+        });
+      }
+    } catch (error) {
+      return this.buildError("Failed to refund payment", error);
+    }
+  }
+
+  private canRefundPayment(
+    paymentData: any,
+    amount: number,
+    currency: string
+  ): boolean {
+    return (
+      (paymentData.status === TransactionStatus.SUCCEEDED ||
+        paymentData.status === TransactionStatus.PARTIALLY_CAPTURED ||
+        paymentData.status === TransactionStatus.PARTIALLY_CAPTURED_AND_CAPTURABLE) &&
+      paymentData.amount > 0 &&
+      paymentData.amount === amount &&
+      paymentData.currency === currency
+    );
+  }
+
+  private mapTransactionStatusToPaymentSessionStatus(
+    status: TransactionStatus
+  ): PaymentSessionStatus {
+    switch (status) {
+      case TransactionStatus.SUCCEEDED:
+        return PaymentSessionStatus.AUTHORIZED;
+      case TransactionStatus.FAILED:
+        return PaymentSessionStatus.ERROR;
+      case TransactionStatus.REQUIRES_CAPTURE:
+      case TransactionStatus.REQUIRES_CONFIRMATION:
+      case TransactionStatus.REQUIRES_PAYMENT_METHOD:
+      case TransactionStatus.REQUIRES_CUSTOMER_ACTION:
+      case TransactionStatus.REQUIRES_MERCHANT_ACTION:
+        return PaymentSessionStatus.REQUIRES_MORE;
+      default:
+        return PaymentSessionStatus.PENDING;
     }
   }
 
