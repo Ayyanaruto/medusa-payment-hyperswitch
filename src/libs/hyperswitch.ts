@@ -26,7 +26,7 @@ export enum TransactionStatus {
     PARTIALLY_CAPTURED_AND_CAPTURABLE = "partially_captured_and_capturable",
 }
 
-interface RequestOptions {
+export interface RequestOptions {
     path: string;
     method: HTTPMethod;
     headers?: Record<string, string>;
@@ -141,10 +141,7 @@ class HyperSwitchApiClient {
             responseTime,
             connector: responseData.connector,
             payment_method: responseData.payment_method,
-            browser: responseData.browser_info ?? 'Unknown',
-            userAgent: response.headers['user-agent'] ?? 'Unknown',
-            clientIp: response.headers['x-forwarded-for'] ?? 'Unknown',
-            requestId: response.headers['x-request-id'],
+            browser: responseData.browser_info ?? 'Unknown'
         });
     }
 
@@ -226,7 +223,7 @@ class HyperSwitchTransactions {
 }
 
 export default class HyperSwitch {
-    private readonly apiClient: HyperSwitchApiClient;
+    public readonly apiClient: HyperSwitchApiClient;
     public readonly transactions: HyperSwitchTransactions;
 
     constructor(apiKey: string) {

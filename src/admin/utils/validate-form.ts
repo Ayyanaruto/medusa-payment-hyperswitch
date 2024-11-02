@@ -1,4 +1,4 @@
-import { CredentialsType,FormErrors } from "../../../types";
+import { CredentialsType,FormErrors } from "../../types";
 
 
 export const validateForm = (data: CredentialsType, setErrors: (errors: FormErrors) => void): boolean => {
@@ -30,7 +30,7 @@ export const validateForm = (data: CredentialsType, setErrors: (errors: FormErro
   }
 
   if (!data.webhook_url) {
-    newErrors.webhook_url = "Webhook URL is required";
+    newErrors.webhook_url = "Proxy URL is required";
     isValid = false;
   } else {
     try {

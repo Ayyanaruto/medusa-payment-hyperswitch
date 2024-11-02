@@ -179,7 +179,7 @@ const FormContent = ({ formState, handleChange, isEditing, errors }) => (
 
   useEffect(() => {
     if (isSuccess && data?.credentials) {
-     console.log(data.credentials);
+     
       Object.entries(data.credentials).forEach(([key, value]) => {
         const setter =
           formSetters[(`set${key}`)];

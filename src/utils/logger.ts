@@ -28,7 +28,7 @@ interface ApiLogMetadata {
   requestType: string;
   endpoint: string;
   browser: string;
-  userAgent: string;
+  userAgent?: string;
   responseTime?: number;
   statusCode: number;
   requestId?: string | string[];

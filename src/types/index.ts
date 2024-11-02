@@ -18,7 +18,10 @@ export interface FormErrors {
   capture_method?: string;
   appearence?: string;
 }
-
+export interface CustomError {
+  theme?: "light" | "dark" | "midnight" | "solarized"|"outline";
+  appearence?: string;
+}
 export interface FormSetters {
   setPublishableKey: (value: string) => void;
   setSecretKey: (value: string) => void;
@@ -38,4 +41,10 @@ export interface HyperswitchIconProps {
   height?: string;
 }
 
+export interface CustomisationTypes{
+  appearence: any;
+  appearance: string;
+  theme: string;
+  id: string;
+}
 

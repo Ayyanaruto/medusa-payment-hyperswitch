@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FormErrors } from "../../types";
+import { FormErrors,CustomError } from "../../types";
 
 export const useHyperswitchForm = () => {
   const [publishableKey, setPublishableKey] = useState<string>("");
@@ -59,3 +59,34 @@ export const useHyperswitchForm = () => {
     setErrors,
   };
 };
+
+
+
+export const useCustomization = () => {
+  const [themes, setThemes] = useState<string>("light");
+  const [appearance, setAppearance] = useState<string>("");
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [errors, setErrors] = useState<CustomError>({});
+
+  const handleChange = {
+    themes: (value: string) => setThemes(value),
+    appearance: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
+      setAppearance(event.target.value),
+  };
+
+return {
+    formState: {
+      themes,
+      appearance,
+    },
+    formSetters: {
+      setThemes,
+      setAppearance,
+    },
+    handleChange,
+    isEditing,
+    setIsEditing,
+    errors,
+    setErrors,
+  };
+}
