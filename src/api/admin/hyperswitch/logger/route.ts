@@ -1,55 +1,55 @@
 import type { MedusaRequest, MedusaResponse } from '@medusajs/medusa';
 import { MedusaError } from '@medusajs/utils';
-import Logger from '../../../../utils/logger';
+
+import readline from 'readline';
+import process from 'process';
 import fs from 'fs';
-import { createReadStream } from 'fs';
-import { pipeline } from 'stream';
-import { promisify } from 'util';
 
-const logger = new Logger();
+export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+  const logfiles = [
+    `${process.cwd()}/application.log`,
+    `${process.cwd()}/analytics.log`,
+  ];
 
-const logApi = (
-  level: string,
-  message: string,
-  req: MedusaRequest,
-  res: MedusaResponse,
-  responseTime: number
-) => {
-  logger.logApi(
-    level,
-    message,
-    {
-      requestType: req.method,
-      endpoint: req.path,
-      browser: req.headers['user-agent']?.split(' ')[0] || 'Unknown',
-      userAgent: req.headers['user-agent'] || 'Unknown',
-      statusCode: res.statusCode,
-      requestId: req.headers['x-request-id'],
-      clientIp: req.ip,
-      responseTime,
-    },
-    'HYPERSWITCH SETTINGS'
-  );
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 100;
+  const startIndex = (page - 1) * limit;
+  const endIndex = page * limit;
+
+  try {
+    const logs = await Promise.all(logfiles.map(readLogs));
+    const allLogs = logs.flat().reverse(); // Reverse the order of logs
+    const paginatedLogs = allLogs.slice(startIndex, endIndex);
+
+    res.json({
+      logs: paginatedLogs,
+      page,
+      limit,
+      totalLogs: allLogs.length,
+      totalPages: Math.ceil(allLogs.length / limit),
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to read logs' });
+  }
 };
 
+const readLogs = (file: string): Promise<string[]> => {
+  return new Promise((resolve, reject) => {
+    const logs: string[] = [];
+    const fileStream = fs.createReadStream(file).on('error', reject);
 
-// export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
-//     try {
-//         const logFiles = ['../../../../../application.log'];
-//         const readStreams = logFiles.map(file => createReadStream(file, { encoding: 'utf8' }));
+    const rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity,
+    });
 
-//         const data: string[] = [];
-//         for (const stream of readStreams) {
-//             const chunks: string[] = [];
-//             for await (const chunk of stream) {
-//                 chunks.push(chunk);
-//             }
-//             data.push(chunks.join(''));
-//         }
+    rl.on('line', (line) => {
+      logs.push(line);
+    });
 
-//         res.status(200).json({ logs: data });
-//     } catch (error) {
-//         logApi('error', 'Failed to read log files', req, res, 0);
-//         res.status(500).json({ error: 'Failed to read log files' });
-//     }
-// };
+    rl.on('close', () => {
+      resolve(logs);
+    });
+  });
+};

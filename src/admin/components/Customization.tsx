@@ -37,6 +37,7 @@ export default function Customisation() {
 
       setAppearance(data.customisation.appearence);
       setThemes(data.customisation.theme);
+      setSubmittedAppearance(JSON.parse(data.customisation.appearence));
     }
   }, [isSuccess, data]);
 
