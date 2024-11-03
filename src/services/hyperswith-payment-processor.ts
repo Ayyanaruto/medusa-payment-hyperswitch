@@ -102,7 +102,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
       });
       return this.formatResponse(response);
     } catch (error) {
-      this.logger.error('Failed to update transaction', { error });
+      this.logger.error('Failed to update transaction', { error },"HYPERSWITCH PAYMENT PROCESSOR");
       throw new MedusaError(
         MedusaErrorTypes.UNEXPECTED_STATE,
         'Failed to update transaction',
@@ -227,7 +227,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
       const { payment_id } = paymentSessionData;
 
       if (!payment_id) {
-        this.logger.error('No payment_id provided', { context });
+        this.logger.error('No payment_id provided', { context }, "HYPERSWITCH PAYMENT PROCESSOR");
         throw new MedusaError(
           MedusaErrorTypes.INVALID_DATA,
           'No payment_id provided',
@@ -410,7 +410,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
     const errorMessage = 'Hyperswitch Payment error: ' + message;
     const code = e instanceof Error ? e.message : e.code;
     const detail = e instanceof Error ? e.stack : e.detail;
-    this.logger.error(errorMessage, e);
+    this.logger.error(errorMessage, e, "HYPERSWITCH PAYMENT PROCESSOR");
     return {
       error: errorMessage,
       code: code ?? '',

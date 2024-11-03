@@ -1,14 +1,13 @@
 'use client';
-import { QueryClient } from "@tanstack/react-query";
-import { MedusaProvider } from "medusa-react";
-import type { SettingConfig } from "@medusajs/admin";
-import { Heading,Container,Toaster,Tabs} from "@medusajs/ui";
+import { QueryClient } from '@tanstack/react-query';
+import { MedusaProvider } from 'medusa-react';
+import type { SettingConfig } from '@medusajs/admin';
+import { Heading, Container, Toaster, Tabs } from '@medusajs/ui';
 
-import HyperswitchForm  from "../../components/HyperSwitchForm";
-import Customisation from "../../components/Customization";
-import { Logger } from "../../components/Logger";
-import icons from "../../icons";
-
+import HyperswitchForm from '../../components/HyperSwitchForm';
+import Customisation from '../../components/Customization';
+import { Logger } from '../../components/Logger';
+import icons from '../../icons';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,37 +31,35 @@ const CustomSettingPage = () => {
   return (
     <MedusaProvider
       queryClientProviderProps={{ client: queryClient }}
-      baseUrl={process.env.MEDUSA_BACKEND_URL||"http://localhost:9000"}
+      baseUrl={process.env.MEDUSA_BACKEND_URL || 'http://localhost:9000'}
     >
       <Container>
-      <TabsContainer>
-        <Tabs.Content value='configuration'>
-        <Heading level="h1" className="text-2xl font-semibold my-10">
-          Hyperswitch Settings
-        </Heading>
-        <Heading level="h3">Manage your Hyperswitch settings</Heading>
-        <HyperswitchForm />
-        <Toaster />
-        </Tabs.Content>
-        <Tabs.Content value='customisation'>
-        <Customisation/>
-        </Tabs.Content>
-        <Tabs.Content value='logs'>
-        <Logger/>
-        </Tabs.Content>
-      </TabsContainer>
-      
+        <TabsContainer>
+          <Tabs.Content value='configuration'>
+            <Heading level='h1' className='text-2xl font-semibold my-10'>
+              Hyperswitch Settings
+            </Heading>
+            <Heading level='h3'>Manage your Hyperswitch settings</Heading>
+            <HyperswitchForm />
+            <Toaster />
+          </Tabs.Content>
+          <Tabs.Content value='customisation'>
+            <Customisation />
+          </Tabs.Content>
+          <Tabs.Content value='logs'>
+            <Logger />
+          </Tabs.Content>
+        </TabsContainer>
       </Container>
     </MedusaProvider>
   );
 };
 
-
 export const config: SettingConfig = {
   card: {
-    label: "Hyperswitch Settings",
-    description: "Manage your Hyperswitch settings",
-    icon: icons["colored-logo"],
+    label: 'Hyperswitch Settings',
+    description: 'Manage your Hyperswitch settings',
+    icon: icons['colored-logo'],
   },
 };
 

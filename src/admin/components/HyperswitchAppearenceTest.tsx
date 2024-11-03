@@ -10,20 +10,21 @@ interface Appearance {
 }
 
 interface ButtonProps {
-  cart: Omit<Cart, 'refundable_amount' | 'refunded_total'>;
-  notReady: boolean;
+  'cart': Omit<Cart, 'refundable_amount' | 'refunded_total'>;
+  'notReady': boolean;
   'data-testid'?: string;
-  theme?: any;
- styles?: any;}
+  'theme'?: any;
+  'styles'?: any;
+}
 
 const HyperswitchPaymentButton: React.FC<ButtonProps> = ({
   cart,
   notReady,
   'data-testid': dataTestId,
   theme,
- styles = {
-    layout: "accordion",
-  }
+  styles = {
+    layout: 'accordion',
+  },
 }) => {
   const [hyper, setHyper] = useState<any>();
   const [widgets, setWidgets] = useState<any>();
@@ -36,7 +37,9 @@ const HyperswitchPaymentButton: React.FC<ButtonProps> = ({
 
     const loadHyper = async () => {
       // @ts-ignore
-      const hyperInstance = Hyper("pay_G7923fNwwYPA9cYkdAga_secret_i2A2az4IXanuC9syFFW9");
+      const hyperInstance = Hyper(
+        'pay_G7923fNwwYPA9cYkdAga_secret_i2A2az4IXanuC9syFFW9',
+      );
       setHyper(hyperInstance);
 
       const appearance = { theme }; // Add the appearance property
@@ -50,10 +53,13 @@ const HyperswitchPaymentButton: React.FC<ButtonProps> = ({
         wallets: {
           walletReturnUrl: 'https://example.com/complete',
         },
-      ...styles
+        ...styles,
       };
 
-      const unifiedCheckout = widgetsInstance.create('payment', unifiedCheckoutOptions);
+      const unifiedCheckout = widgetsInstance.create(
+        'payment',
+        unifiedCheckoutOptions,
+      );
       checkoutComponent.current = unifiedCheckout;
       unifiedCheckout.mount('#unified-checkout');
     };
@@ -64,7 +70,7 @@ const HyperswitchPaymentButton: React.FC<ButtonProps> = ({
     return () => {
       document.body.removeChild(scriptTag);
     };
-  }, [theme,styles]);
+  }, [theme, styles]);
 
   const handlePayment = useCallback(async () => {
     if (!hyper || !widgets) return;

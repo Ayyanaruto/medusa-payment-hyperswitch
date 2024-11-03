@@ -1,12 +1,14 @@
-import { TransactionBaseService } from "@medusajs/medusa";
-import { MedusaError } from "@medusajs/utils";
-import { CredentialsRepository } from "../repositories/credentials";
-import { CredentialsType } from "../types";
+import { TransactionBaseService } from '@medusajs/medusa';
+import { MedusaError } from '@medusajs/utils';
+import { CredentialsRepository } from '../repositories/credentials';
+import { CredentialsType } from '../types';
 
 class CredentialsService extends TransactionBaseService {
   protected credentialsRepository_: typeof CredentialsRepository;
 
-  constructor(container: { credentialsRepository: typeof CredentialsRepository }) {
+  constructor(container: {
+    credentialsRepository: typeof CredentialsRepository;
+  }) {
     super(container);
     this.credentialsRepository_ = container.credentialsRepository;
   }
@@ -19,7 +21,7 @@ class CredentialsService extends TransactionBaseService {
     if (!this.credentialsRepository_) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        "credentialsRepository_ is not defined"
+        'credentialsRepository_ is not defined',
       );
     }
     return await this.credentialsRepository_.extract();

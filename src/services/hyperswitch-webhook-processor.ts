@@ -10,9 +10,7 @@ import {
 import { EntityManager } from 'typeorm';
 import { PaymentRepository } from '@medusajs/medusa/dist/repositories/payment';
 import { RefundRepository } from '@medusajs/medusa/dist/repositories/refund';
-import {
-  WebhookIdempotencyService,
-} from './hyperswitch-webhook-idempotency';
+import { WebhookIdempotencyService } from './hyperswitch-webhook-idempotency';
 import { MedusaError } from '@medusajs/utils';
 
 type InjectedDependencies = {
@@ -61,13 +59,16 @@ class HyperswitchWebhook extends TransactionBaseService {
     this.idempotencyKeyService_ = container.idempotencyKeyService;
     this.webhookIdempotencyService_ =
       container.hyperswitchWebhookIdempotencyService;
-  
   }
 
   private createWebhookEvent(
     type: string,
     data: WebhookData,
-  ): { event_type: string; entity_id: string; metadata: Record<string, unknown> } {
+  ): {
+    event_type: string;
+    entity_id: string;
+    metadata: Record<string, unknown>;
+  } {
     return {
       event_type: type,
       entity_id: data.id,

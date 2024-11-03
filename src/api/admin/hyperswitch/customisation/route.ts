@@ -25,7 +25,7 @@ const logApi = (
       clientIp: req.ip,
       responseTime,
     },
-    'HYPERSWITCH SETTINGS'
+    'CUSTOMISATION SETTINGS'
   );
 };
 

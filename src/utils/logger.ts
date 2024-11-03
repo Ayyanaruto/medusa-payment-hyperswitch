@@ -1,7 +1,7 @@
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
-import chalk from "chalk";
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import chalk from 'chalk';
 
 interface LogEntry {
   level: string;
@@ -34,7 +34,7 @@ interface ApiLogMetadata {
   requestId?: string | string[];
   clientIp?: string;
   connector?: string;
-  payment_method?: Object ;
+  payment_method?: Object;
   requestBody?: Object;
   requestHeaders?: Object;
   queryParams?: Object;
@@ -43,10 +43,10 @@ interface ApiLogMetadata {
 }
 
 enum LogLevel {
-  ERROR = "ERROR",
-  WARN = "WARN",
-  INFO = "INFO",
-  DEBUG = "DEBUG",
+  ERROR = 'ERROR',
+  WARN = 'WARN',
+  INFO = 'INFO',
+  DEBUG = 'DEBUG',
 }
 
 const LOG_COLORS = {
@@ -69,43 +69,46 @@ class Logger {
     logDirectory?: string,
     rotationSizeInBytes: number = 5 * 1024 * 1024,
     maxLogFiles: number = 5,
-    analyticsUpdateFrequency: number = 60000 // 1 minute
+    analyticsUpdateFrequency: number = 60000, // 1 minute
   ) {
     const baseDir = logDirectory || process.cwd();
-    this.logFile = path.join(baseDir, "application.log");
-    this.analyticsFile = path.join(baseDir, "analytics.log");
+    this.logFile = path.join(baseDir, 'application.log');
+    this.analyticsFile = path.join(baseDir, 'analytics.log');
     this.rotationSizeInBytes = rotationSizeInBytes;
     this.maxLogFiles = maxLogFiles;
 
     this.sensitiveFields = {
       payment: [
-        "secret_key",
-        "card_number",
-        "cvv",
-        "payment_response_hash_key",
+        'secret_key',
+        'card_number',
+        'cvv',
+        'payment_response_hash_key',
+        'payment_hash_key',
+        'api_key',
+        'client_secret',
       ],
-      auth: ["password", "token", "api_key", "secret"],
+      auth: ['password', 'token', 'api_key', 'secret'],
       encryption: [
-        "encryption_key",
-        "private_key",
-        "salt",
-        "iv",
-        "tag",
-        "ciphertext",
-        "key",
-        "secret_key",
-        "hashed_secret_key",
-        "plaintext",
+        'encryption_key',
+        'private_key',
+        'salt',
+        'iv',
+        'tag',
+        'ciphertext',
+        'key',
+        'secret_key',
+        'hashed_secret_key',
+        'plaintext',
       ],
       database: [
-        "connection_string",
-        "password",
-        "auth_token",
-        "secret_key",
-        "hashed_secret_key",
-        "payment_response_hash_key",
-        "payment_hash_key",
-        "tag"
+        'connection_string',
+        'password',
+        'auth_token',
+        'secret_key',
+        'hashed_secret_key',
+        'payment_response_hash_key',
+        'payment_hash_key',
+        'tag',
       ],
     };
 
@@ -138,7 +141,7 @@ class Logger {
         return JSON.parse(jsonMatch[0]);
       }
     } catch (error) {
-      console.error("Error parsing log line:", error);
+      console.error('Error parsing log line:', error);
     }
     return null;
   }
@@ -146,10 +149,10 @@ class Logger {
   private async updateAnalytics(): Promise<void> {
     try {
       const logs = fs
-        .readFileSync(this.logFile, "utf-8")
-        .split("\n")
-        .filter((line) => line.trim())
-        .map((line) => this.parseLogLine(line))
+        .readFileSync(this.logFile, 'utf-8')
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => this.parseLogLine(line))
         .filter((log): log is LogEntry => log !== null);
 
       this.analytics.totalLogs = logs.length;
@@ -159,7 +162,7 @@ class Logger {
       let totalResponseTime = 0;
       let responseTimeCount = 0;
 
-      logs.forEach((log) => {
+      logs.forEach(log => {
         this.analytics.logsByLevel[log.level] =
           (this.analytics.logsByLevel[log.level] || 0) + 1;
 
@@ -187,36 +190,36 @@ class Logger {
       this.analytics.lastAnalyticsUpdate = new Date().toISOString();
 
       const analyticsLog = `[${new Date().toISOString()}] ANALYTICS ${JSON.stringify(
-        this.analytics
+        this.analytics,
       )}\n`;
       fs.writeFileSync(this.analyticsFile, analyticsLog);
 
       this.printAnalyticsSummary();
     } catch (error) {
-      console.error("Error updating analytics:", error);
+      console.error('Error updating analytics:', error);
     }
   }
 
   private printAnalyticsSummary(): void {
-    console.log("\n=== Logger Analytics Summary ===");
+    console.log('\n=== Logger Analytics Summary ===');
     console.log(`Total Logs: ${this.analytics.totalLogs}`);
     console.log(`Error Rate: ${this.analytics.errorRate.toFixed(2)}%`);
     if (this.analytics.averageResponseTime) {
       console.log(
-        `Avg Response Time: ${this.analytics.averageResponseTime.toFixed(2)}ms`
+        `Avg Response Time: ${this.analytics.averageResponseTime.toFixed(2)}ms`,
       );
     }
-    console.log("\nLogs by Level:");
+    console.log('\nLogs by Level:');
     Object.entries(this.analytics.logsByLevel).forEach(([level, count]) => {
       const colorize = LOG_COLORS[level as LogLevel] || chalk.white;
       console.log(colorize(`  ${level}: ${count}`));
     });
-    console.log("\nLogs by Source:");
+    console.log('\nLogs by Source:');
     Object.entries(this.analytics.logsBySource).forEach(([source, count]) => {
       console.log(chalk.cyan(`  ${source}: ${count}`));
     });
-    console.log("\nLast Updated:", this.analytics.lastAnalyticsUpdate);
-    console.log("============================\n");
+    console.log('\nLast Updated:', this.analytics.lastAnalyticsUpdate);
+    console.log('============================\n');
   }
 
   private ensureLogFileExists(): void {
@@ -225,7 +228,7 @@ class Logger {
       fs.mkdirSync(logDir, { recursive: true });
     }
     if (!fs.existsSync(this.logFile)) {
-      fs.writeFileSync(this.logFile, "");
+      fs.writeFileSync(this.logFile, '');
     }
   }
 
@@ -237,10 +240,10 @@ class Logger {
 
     const maskValue = (obj: any) => {
       for (const key in obj) {
-        if (typeof obj[key] === "object" && obj[key] !== null) {
+        if (typeof obj[key] === 'object' && obj[key] !== null) {
           maskValue(obj[key]);
         } else if (fieldsToMask.includes(key.toLowerCase())) {
-          obj[key] = "********";
+          obj[key] = '********';
         }
       }
     };
@@ -259,16 +262,15 @@ class Logger {
     try {
       const stats = fs.statSync(this.logFile);
       if (stats.size >= this.rotationSizeInBytes) {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const rotatedFilePath = `${this.logFile}.${timestamp}`;
 
         fs.renameSync(this.logFile, rotatedFilePath);
-        fs.writeFileSync(this.logFile, "");
+        fs.writeFileSync(this.logFile, '');
 
-        // Clean up old log files
         const logFiles = fs
           .readdirSync(path.dirname(this.logFile))
-          .filter((file) => file.startsWith(path.basename(this.logFile)))
+          .filter(file => file.startsWith(path.basename(this.logFile)))
           .sort(
             (a, b) =>
               fs
@@ -276,7 +278,7 @@ class Logger {
                 .mtime.getTime() -
               fs
                 .statSync(path.join(path.dirname(this.logFile), a))
-                .mtime.getTime()
+                .mtime.getTime(),
           );
 
         while (logFiles.length > this.maxLogFiles) {
@@ -287,24 +289,24 @@ class Logger {
         }
       }
     } catch (error) {
-      console.error("Error rotating logs:", error);
+      console.error('Error rotating logs:', error);
     }
   }
 
   private generateCorrelationId(): string {
-    return crypto.randomBytes(16).toString("hex");
+    return crypto.randomBytes(16).toString('hex');
   }
 
   private formatConsoleOutput(logEntry: LogEntry): string {
     const colorize = LOG_COLORS[logEntry.level as LogLevel] || chalk.white;
     const timestamp = chalk.grey(logEntry.timestamp);
     const correlationId = chalk.grey(`[${logEntry.correlationId}]`);
-    const source = logEntry.source ? chalk.cyan(`[${logEntry.source}]`) : "";
+    const source = logEntry.source ? chalk.cyan(`[${logEntry.source}]`) : '';
     const message = colorize(logEntry.message);
     const metadata =
       Object.keys(logEntry.metadata).length > 0
         ? chalk.grey(JSON.stringify(logEntry.metadata))
-        : "";
+        : '';
 
     return `${timestamp} ${correlationId} ${source} ${message} ${metadata}`;
   }
@@ -313,62 +315,58 @@ class Logger {
     try {
       await this.rotateLogsIfNeeded();
 
-      // Write to file in log format
       const logLine = this.formatLogEntry(logEntry);
       fs.appendFileSync(this.logFile, logLine);
 
-      // Print to console with formatting
       console.log(this.formatConsoleOutput(logEntry));
     } catch (error) {
-      console.error("Failed to write log:", error);
+      console.error('Failed to write log:', error);
     }
   }
 
-  async logPayment(message: string, metadata: any): Promise<void> {
-    const maskedMetadata = this.maskSensitiveData(metadata, "payment");
-    await this.info(message, maskedMetadata, "PAYMENT");
-  }
-
   async logEncryption(message: string, metadata: any): Promise<void> {
-    const maskedMetadata = this.maskSensitiveData(metadata, "encryption");
-    await this.info(message, maskedMetadata, "ENCRYPTION");
+    const maskedMetadata = this.maskSensitiveData(metadata, 'encryption');
+    await this.info(message, maskedMetadata, 'ENCRYPTION');
   }
 
   async logDecryption(message: string, metadata: any): Promise<void> {
-    const maskedMetadata = this.maskSensitiveData(metadata, "encryption");
-    await this.warn(message, maskedMetadata, "DECRYPTION");
+    const maskedMetadata = this.maskSensitiveData(metadata, 'encryption');
+    await this.warn(message, maskedMetadata, 'DECRYPTION');
   }
 
   async logDatabase(message: string, metadata: any): Promise<void> {
-    const maskedMetadata = this.maskSensitiveData(metadata, "database");
-    await this.info(message, maskedMetadata, "DATABASE");
+    const maskedMetadata = this.maskSensitiveData(metadata, 'database');
+    await this.info(message, maskedMetadata, 'DATABASE');
   }
 
   async logAuthorization(message: string, metadata: any): Promise<void> {
-    const maskedMetadata = this.maskSensitiveData(metadata, "auth");
-    await this.info(message, maskedMetadata, "AUTH");
+    const maskedMetadata = this.maskSensitiveData(metadata, 'auth');
+    await this.info(message, maskedMetadata, 'AUTH');
   }
   async logApi(
     level: string,
     message: string,
     metadata: ApiLogMetadata,
-    source: string = "API"
+    source: string = 'API',
   ): Promise<void> {
     switch (level) {
-      case "INFO":
+      case 'INFO':
         level = LogLevel.INFO;
         break;
-      case "ERROR":
+      case 'ERROR':
         level = LogLevel.ERROR;
         break;
-      case "WARN":
+      case 'WARN':
         level = LogLevel.WARN;
         break;
       default:
         level = LogLevel.DEBUG;
         break;
     }
-      
+
+    metadata = this.maskSensitiveData(metadata, 'payment');
+    metadata = this.maskSensitiveData(metadata, 'api');
+
     const logEntry: LogEntry = {
       level,
       message,
@@ -384,7 +382,6 @@ class Logger {
     await this.writeLog(logEntry);
   }
   async info(message: string, metadata: any, source?: string): Promise<void> {
-    
     const logEntry: LogEntry = {
       level: LogLevel.INFO,
       message,

@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { FormErrors,CustomError } from "../../types";
+import { useState } from 'react';
+import { FormErrors, CustomError } from '../../types';
 
 export const useHyperswitchForm = () => {
-  const [publishableKey, setPublishableKey] = useState<string>("");
-  const [secretKey, setSecretKey] = useState<string>("");
-  const [paymentHashKey, setPaymentHashKey] = useState<string>("");
-  const [webhookURL, setWebhookURL] = useState<string>("");
-  const [environment, setEnvironment] = useState<string>("sandbox");
-  const [captureMethod, setCaptureMethod] = useState<string>("manual");
+  const [publishableKey, setPublishableKey] = useState<string>('');
+  const [secretKey, setSecretKey] = useState<string>('');
+  const [paymentHashKey, setPaymentHashKey] = useState<string>('');
+  const [webhookURL, setWebhookURL] = useState<string>('');
+  const [environment, setEnvironment] = useState<string>('sandbox');
+  const [captureMethod, setCaptureMethod] = useState<string>('manual');
   const [enableSaveCards, setEnableSaveCards] = useState<boolean>(false);
-  const [appearence, setAppearence] = useState<string>("");
+  const [appearence, setAppearence] = useState<string>('');
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -31,26 +31,24 @@ export const useHyperswitchForm = () => {
 
   return {
     formState: {
-    publishable_key: publishableKey,
-    secret_key: secretKey,
-    payment_hash_key: paymentHashKey,
-    webhook_url: webhookURL,
-    environment,
-    capture_method: captureMethod,
-    enable_save_cards: enableSaveCards,
-    appearence,
+      publishable_key: publishableKey,
+      secret_key: secretKey,
+      payment_hash_key: paymentHashKey,
+      webhook_url: webhookURL,
+      environment,
+      capture_method: captureMethod,
+      enable_save_cards: enableSaveCards,
+      appearence,
     },
     formSetters: {
-      setpublishable_key:setPublishableKey,
-      setsecret_key:setSecretKey,
-      setpayment_hash_key:setPaymentHashKey,
-      setwebhook_url:setWebhookURL,
-      setenvironment:setEnvironment,
-      setcapture_method:setCaptureMethod,
-      setenable_save_cards:setEnableSaveCards,
-      setappearence:setAppearence,
-
-      
+      setpublishable_key: setPublishableKey,
+      setsecret_key: setSecretKey,
+      setpayment_hash_key: setPaymentHashKey,
+      setwebhook_url: setWebhookURL,
+      setenvironment: setEnvironment,
+      setcapture_method: setCaptureMethod,
+      setenable_save_cards: setEnableSaveCards,
+      setappearence: setAppearence,
     },
     handleChange,
     isEditing,
@@ -60,11 +58,9 @@ export const useHyperswitchForm = () => {
   };
 };
 
-
-
 export const useCustomization = () => {
-  const [themes, setThemes] = useState<string>("light");
-  const [appearance, setAppearance] = useState<string>("");
+  const [themes, setThemes] = useState<string>('light');
+  const [appearance, setAppearance] = useState<string>('');
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [errors, setErrors] = useState<CustomError>({});
 
@@ -74,7 +70,7 @@ export const useCustomization = () => {
       setAppearance(event.target.value),
   };
 
-return {
+  return {
     formState: {
       themes,
       appearance,
@@ -89,4 +85,4 @@ return {
     errors,
     setErrors,
   };
-}
+};

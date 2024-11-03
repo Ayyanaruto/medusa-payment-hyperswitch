@@ -1,14 +1,17 @@
-import { MedusaError } from "@medusajs/utils";
-import { Credentials } from "../models/credentials";
-import { CredentialsType } from "../types";
-import { dataSource } from "@medusajs/medusa/dist/loaders/database";
-import Logger from "../utils/logger";
-import { encrypt, decrypt } from "../utils/encrypt";
-import path from "path";
+import { MedusaError } from '@medusajs/utils';
+import { Credentials } from '../models/credentials';
+import { CredentialsType } from '../types';
+import { dataSource } from '@medusajs/medusa/dist/loaders/database';
+import Logger from '../utils/logger';
+import { encrypt, decrypt } from '../utils/encrypt';
+import path from 'path';
 
 const logger = new Logger();
 
-const hashSecretKey = async (key: string, secretKey: string): Promise<string> => {
+const hashSecretKey = async (
+  key: string,
+  secretKey: string,
+): Promise<string> => {
   return JSON.stringify(await encrypt(key, secretKey));
 };
 
@@ -24,23 +27,26 @@ const createOrUpdateCredentials = async function (data: CredentialsType) {
     const hashedSecretKey = await hashSecretKey(key, data.secret_key);
 
     let existingCredentials = await this.find();
-    logger.logDatabase("Checking for Existing Credentials", existingCredentials);
+    logger.logDatabase(
+      'Checking for Existing Credentials',
+      existingCredentials,
+    );
 
     existingCredentials = existingCredentials[0];
 
     if (existingCredentials) {
       await this.update(
         { id: existingCredentials.id },
-        { ...data, secret_key: hashedSecretKey }
+        { ...data, secret_key: hashedSecretKey },
       );
-      logger.logDatabase("Updated Credentials", data);
+      logger.logDatabase('Updated Credentials', data);
     } else {
       const newCredentials = this.create({
         ...data,
         secret_key: hashedSecretKey,
       });
       await this.save(newCredentials);
-      logger.logDatabase("Created Credentials", data);
+      logger.logDatabase('Created Credentials', data);
     }
 
     const result = await this.findOne({
@@ -50,11 +56,18 @@ const createOrUpdateCredentials = async function (data: CredentialsType) {
       },
     });
 
-    logger.logDatabase("Created/Updated Credentials", result);
+    logger.logDatabase('Created/Updated Credentials', result);
     return result;
   } catch (e) {
-    logger.error("Error in Credentials Creation/Update", e, path.basename(__filename));
-    throw new MedusaError(MedusaError.Types.DB_ERROR, "Error in createOrUpdate");
+    logger.error(
+      'Error in Credentials Creation/Update',
+      e,
+      path.basename(__filename),
+    );
+    throw new MedusaError(
+      MedusaError.Types.DB_ERROR,
+      'Error in createOrUpdate',
+    );
   }
 };
 
@@ -65,18 +78,26 @@ const extractCredentials = async function (): Promise<CredentialsType | {}> {
       return {};
     }
 
-    const decryptedSecretKey = await decryptSecretKey(credentials[0].secret_key);
-    credentials[0]["secret_key"] = decryptedSecretKey;
+    const decryptedSecretKey = await decryptSecretKey(
+      credentials[0].secret_key,
+    );
+    credentials[0]['secret_key'] = decryptedSecretKey;
 
-    logger.logDatabase("Extracted credentials from Database", credentials[0]);
+    logger.logDatabase('Extracted credentials from Database', credentials[0]);
     return { ...credentials[0] };
   } catch (e) {
-    logger.error("Error in Credentials Extraction", e, path.basename(__filename));
-    throw new MedusaError(MedusaError.Types.DB_ERROR, "Error in extract");
+    logger.error(
+      'Error in Credentials Extraction',
+      e,
+      path.basename(__filename),
+    );
+    throw new MedusaError(MedusaError.Types.DB_ERROR, 'Error in extract');
   }
 };
 
-export const CredentialsRepository = dataSource.getRepository(Credentials).extend({
-  createOrUpdate: createOrUpdateCredentials,
-  extract: extractCredentials,
-});
+export const CredentialsRepository = dataSource
+  .getRepository(Credentials)
+  .extend({
+    createOrUpdate: createOrUpdateCredentials,
+    extract: extractCredentials,
+  });

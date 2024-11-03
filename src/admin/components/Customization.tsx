@@ -34,7 +34,6 @@ export default function Customisation() {
 
   useEffect(() => {
     if (isSuccess && data) {
-
       setAppearance(data.customisation.appearence);
       setThemes(data.customisation.theme);
       setSubmittedAppearance(JSON.parse(data.customisation.appearence));
@@ -66,7 +65,7 @@ export default function Customisation() {
           onError: () => {
             setErrors({ appearance: 'Invalid JSON format' });
           },
-        }
+        },
       );
     } catch (e) {
       toast.error('Error', {
@@ -83,7 +82,6 @@ export default function Customisation() {
       </Container>
     );
   }
-
 
   return (
     <>
