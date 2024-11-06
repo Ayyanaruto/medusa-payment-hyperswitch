@@ -7,67 +7,39 @@ import {
   Input,
   Label,
   Button,
-  Select,
   Switch,
-  Textarea,
-  Text,
   toast,
 } from '@medusajs/ui';
 import { Spinner } from '@medusajs/icons';
+
+import  FormField  from './FormField';
+import  SelectField  from './SelectField';
 
 import { useCredentials } from '../hooks/useCredentials';
 import { useCreateCredentials } from '../hooks/useCreateCredentials';
 import { validateForm, extractFormData } from '../utils';
 import { useHyperswitchForm } from '../hooks/useHyperswitchForm';
 
-const FormField = ({ label, error, children }) => (
-  <Container className='col-span-5'>
-    <Label id={label}>{label}</Label>
-    {children}
-    {error && <Text className='text-red-500 text-sm mt-1'>{error}</Text>}
-  </Container>
+const EnvironmentSelect = props => (
+  <SelectField
+    label='Environment'
+    options={[
+      { value: 'sandbox', label: 'Sandbox' },
+      { value: 'production', label: 'Production' },
+    ]}
+    {...props}
+  />
 );
 
-const EnvironmentSelect = ({ isEditing, value, onChange, error }) => (
-  <Container className='col-span-2'>
-    <Label id='environment'>Environment</Label>
-    <Select
-      disabled={!isEditing}
-      name='environment'
-      value={value}
-      onValueChange={onChange}
-    >
-      <Select.Trigger>
-        <Select.Value placeholder='Select Environment' />
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Item value='sandbox'>Sandbox</Select.Item>
-        <Select.Item value='production'>Production</Select.Item>
-      </Select.Content>
-    </Select>
-    {error && <Text className='text-red-500 text-sm mt-1'>{error}</Text>}
-  </Container>
-);
-
-const CaptureMethodSelect = ({ isEditing, value, onChange, error }) => (
-  <Container className='col-span-2'>
-    <Label id='capture-method'>Capture Method</Label>
-    <Select
-      disabled={!isEditing}
-      name='capture-method'
-      value={value}
-      onValueChange={onChange}
-    >
-      <Select.Trigger>
-        <Select.Value placeholder='Select Capture Method' />
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Item value='manual'>Manual</Select.Item>
-        <Select.Item value='automatic'>Automatic</Select.Item>
-      </Select.Content>
-    </Select>
-    {error && <Text className='text-red-500 text-sm mt-1'>{error}</Text>}
-  </Container>
+const CaptureMethodSelect = props => (
+  <SelectField
+    label='Capture Method'
+    options={[
+      { value: 'manual', label: 'Manual' },
+      { value: 'automatic', label: 'Automatic' },
+    ]}
+    {...props}
+  />
 );
 
 const FormContent = ({ formState, handleChange, isEditing, errors }) => (
@@ -109,18 +81,6 @@ const FormContent = ({ formState, handleChange, isEditing, errors }) => (
         value={formState.payment_hash_key}
       />
     </FormField>
-
-    <FormField label='Webhook URL' error={errors.webhook_url}>
-      <Input
-        placeholder='Enter your Webhook URL'
-        id='webhook-url'
-        name='webhook-url'
-        onChange={handleChange.webhookURL}
-        disabled={!isEditing}
-        value={formState.webhook_url}
-      />
-    </FormField>
-
     <EnvironmentSelect
       isEditing={isEditing}
       value={formState.environment}
@@ -144,17 +104,6 @@ const FormContent = ({ formState, handleChange, isEditing, errors }) => (
         onCheckedChange={handleChange.enableSaveCards}
       />
     </Container>
-
-    <FormField label='Appearance' error={errors.appearence}>
-      <Textarea
-        placeholder='Customise Hyperswitch appearance'
-        id='appearence'
-        name='appearence'
-        onChange={handleChange.appearence}
-        disabled={!isEditing}
-        value={formState.appearence}
-      />
-    </FormField>
   </>
 );
 
@@ -247,6 +196,7 @@ const HyperswitchForm = () => {
             type='reset'
             onClick={handleEdit}
             disabled={isSubmitting}
+            className='ml-2'
           >
             Cancel
           </Button>
@@ -255,5 +205,6 @@ const HyperswitchForm = () => {
     </form>
   );
 };
+
 
 export default HyperswitchForm;

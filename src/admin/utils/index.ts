@@ -1,4 +1,4 @@
-import { validateForm } from "./validate-form";
-import { extractFormData } from "./extract-form";
+import { validateForm,validateProxyForm } from "./validate-form";
+import { extractFormData,extractProxyFormData } from "./extract-form";
 
-export { validateForm, extractFormData };
+export { validateForm, extractFormData, extractProxyFormData, validateProxyForm };

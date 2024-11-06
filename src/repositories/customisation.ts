@@ -26,7 +26,7 @@ const createOrUpdateCustomisation = async function (data: CustomisationTypes) {
       await this.update(
         { id: existingCustomisation.id },
         {
-          appearence: JSON.stringify(data.appearance),
+          appearance: JSON.stringify(data.appearance),
           theme: data.theme,
         },
       );
@@ -42,7 +42,7 @@ const createOrUpdateCustomisation = async function (data: CustomisationTypes) {
         'CUSTOMISATION SETTINGS REPOSITORY',
       );
       const newCustomisation = this.create({
-        appearence: JSON.stringify(data.appearance),
+        appearance: JSON.stringify(data.appearance),
         theme: data.theme,
       });
       await this.save(newCustomisation);
@@ -55,7 +55,7 @@ const createOrUpdateCustomisation = async function (data: CustomisationTypes) {
 
     const result = await this.findOne({
       where: {
-        appearence: JSON.stringify(data.appearance),
+        appearance: JSON.stringify(data.appearance),
         theme: data.theme,
       },
     });
@@ -87,6 +87,12 @@ const findCustomisation = async function () {
       customisation,
       'CUSTOMISATION SETTINGS REPOSITORY',
     );
+    if (!customisation) {
+      return {
+        appearance: '{}',
+        theme: 'light',
+      };
+    }
     return customisation;
   } catch (e) {
     logger.error(

@@ -1,123 +1,94 @@
-import { PaymentProcessorSessionResponse } from '@medusajs/medusa';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import axiosRetry from 'axios-retry';
 import Logger from '../utils/logger';
-
-export const HYPERSWITCH_API_PATH =
-  process.env.NODE_ENV === 'production'
-    ? 'https://api.hyperswitch.io'
-    : 'https://sandbox.hyperswitch.io';
-
-type HTTPMethod =
-  | 'GET'
-  | 'POST'
-  | 'PUT'
-  | 'PATCH'
-  | 'DELETE'
-  | 'OPTIONS'
-  | 'HEAD';
-
-interface HyperSwitchResponse<T> {
-  status: number;
-  data: T;
-}
-
-export enum TransactionStatus {
-  SUCCEEDED = 'succeeded',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled',
-  PROCESSING = 'processing',
-  REQUIRES_CUSTOMER_ACTION = 'requires_customer_action',
-  REQUIRES_MERCHANT_ACTION = 'requires_merchant_action',
-  REQUIRES_PAYMENT_METHOD = 'requires_payment_method',
-  REQUIRES_CONFIRMATION = 'requires_confirmation',
-  REQUIRES_CAPTURE = 'requires_capture',
-  PARTIALLY_CAPTURED = 'partially_captured',
-  PARTIALLY_CAPTURED_AND_CAPTURABLE = 'partially_captured_and_capturable',
-}
-
-export interface RequestOptions {
-  path: string;
-  method: HTTPMethod;
-  headers?: Record<string, string>;
-  body?:
-    | Record<string, unknown>
-    | TransactionCreateParams
-    | TransactionUpdateParams;
-  query?: Record<string, unknown>;
-}
-
-interface TransactionCreateParams {
-  amount: number;
-  currency: string;
-  payment_experience?: string;
-  capture_method?: string;
-  confirm?: boolean;
-  setup_future_usage: string;
-  billing?: Record<string, unknown>;
-  customer?: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
-}
-
-interface TransactionUpdateParams {
-  payment_id: string;
-  payment_experience?: string;
-  confirm?: boolean;
-  amount: number;
-  billing?: Record<string, unknown>;
-  customer?: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
-  return_url?: string;
-  customer_id?: string;
-  capture_method?: string;
-}
-
-interface TransactionFetchParams {
-  payment_id: string;
-  amount_to_capture?: number;
-}
-
-interface TransactionResponse extends PaymentProcessorSessionResponse {
-  payment_id: string;
-  client_secret: string;
-  amount: number;
-  currency: string;
-  status: string;
-  capture_method: string;
-  setup_future_usage: string;
-  billing?: Record<string, unknown>;
-  customer?: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-  expires_at: string;
-  confirmed_at: string;
-  captured_at: string;
-  refunded_at: string;
-  voided_at: string;
-  error?: Record<string, unknown>;
-  browser_info?: string;
-  payment_method?: string;
-  connector?: string;
-}
+import {
+  RequestOptions,
+  TransactionCreateParams,
+  TransactionUpdateParams,
+  TransactionFetchParams,
+  TransactionResponse,
+  HyperSwitchResponse,
+  ProxyTypes
+} from '../types';
+import { testProxyConfiguration } from './__mocks__/test_proxy.test';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 class HyperSwitchApiClient {
   private readonly axiosInstance: AxiosInstance;
   private readonly logger: Logger;
+  public readonly proxy: ProxyTypes;
 
-  constructor(apiKey: string) {
-    this.axiosInstance = axios.create({
-      baseURL: HYPERSWITCH_API_PATH,
+  constructor(apiKey: string, environment: string, proxy?: ProxyTypes) {
+    this.proxy = proxy;
+    const HYPERSWITCH_API_PATH =
+      environment === 'production'
+        ? 'https://api.hyperswitch.io'
+        : 'https://sandbox.hyperswitch.io';
+
+    this.logger = new Logger();
+    this.axiosInstance = this.createAxiosInstance(apiKey, HYPERSWITCH_API_PATH, proxy);
+  }
+
+  private createAxiosInstance(apiKey: string, baseURL: string, proxy?: ProxyTypes): AxiosInstance {
+    const axiosConfig: AxiosRequestConfig = {
+      baseURL: proxy?.url || baseURL,
       headers: {
         'Content-Type': 'application/json',
         'api-key': apiKey,
       },
-    });
-    axiosRetry(this.axiosInstance, { retries: 3 });
-    this.logger = new Logger();
+    };
+
+    if (proxy?.enabled && proxy?.host && proxy?.port) {
+      this.configureProxy(axiosConfig, proxy);
+    }
+
+    const instance = axios.create(axiosConfig);
+    this.configureAxiosRetry(instance);
+
+    return instance;
   }
 
-  async request<T>(options: RequestOptions): Promise<HyperSwitchResponse<T>> {
+  private configureProxy(axiosConfig: AxiosRequestConfig, proxy: ProxyTypes): void {
+    const proxyUrl = proxy.username && proxy.password
+      ? `http://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`
+      : `http://${proxy.host}:${proxy.port}`;
+
+    const agent = new HttpsProxyAgent(proxyUrl);
+    axiosConfig.proxy = false;
+    axiosConfig.httpsAgent = agent;
+
+    this.logger.debug(
+      'Configuring Proxy',
+      {
+        host: proxy.host,
+        port: proxy.port,
+        hasCredentials: !!(proxy.username && proxy.password)
+      },
+      'PROXY CONFIGURATION'
+    );
+    this.runTests(proxy);
+  }
+
+  private configureAxiosRetry(instance: AxiosInstance): void {
+    axiosRetry(instance, {
+      retries: 3,
+      retryDelay: (retryCount) => retryCount * 1000,
+      retryCondition: (error) => {
+        return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+          (error.response?.status >= 500 && error.response?.status <= 599);
+      }
+    });
+  }
+
+  public async runTests(proxy: ProxyTypes): Promise<void> {
+    try {
+      await testProxyConfiguration(proxy);
+    } catch (error) {
+      this.logger.error('Failed to run proxy tests', { error });
+    }
+  }
+
+  public async request<T>(options: RequestOptions): Promise<HyperSwitchResponse<T>> {
     const config: AxiosRequestConfig = {
       method: options.method,
       url: options.path,
@@ -170,7 +141,7 @@ class HyperSwitchApiClient {
   private handleError(error: unknown, options: RequestOptions): never {
     if (axios.isAxiosError(error)) {
       this.logger.error(
-        `Error from HyperSwitch API: ${error.response?.status}`,
+        `Error from HyperSwitch API: ${error.response?.status}+${JSON.stringify(error.response?.data)}`,
         {
           requestOptions: options,
           responseData: error.response?.data,
@@ -195,7 +166,7 @@ class HyperSwitchTransactions {
     this.apiClient = apiClient;
   }
 
-  async create(
+  public async create(
     params: TransactionCreateParams,
   ): Promise<HyperSwitchResponse<TransactionResponse>> {
     return this.apiClient.request<TransactionResponse>({
@@ -205,7 +176,7 @@ class HyperSwitchTransactions {
     });
   }
 
-  async update(
+  public async update(
     params: TransactionUpdateParams,
   ): Promise<HyperSwitchResponse<TransactionResponse>> {
     return this.apiClient.request<TransactionResponse>({
@@ -215,7 +186,7 @@ class HyperSwitchTransactions {
     });
   }
 
-  async fetch(
+  public async fetch(
     params: TransactionFetchParams,
   ): Promise<HyperSwitchResponse<TransactionResponse>> {
     return this.apiClient.request<TransactionResponse>({
@@ -224,7 +195,7 @@ class HyperSwitchTransactions {
     });
   }
 
-  async capture(
+  public async capture(
     params: TransactionFetchParams,
   ): Promise<HyperSwitchResponse<TransactionResponse>> {
     return this.apiClient.request<TransactionResponse>({
@@ -236,7 +207,7 @@ class HyperSwitchTransactions {
     });
   }
 
-  async cancel(
+  public async cancel(
     params: TransactionFetchParams,
   ): Promise<HyperSwitchResponse<TransactionResponse>> {
     return this.apiClient.request<TransactionResponse>({
@@ -248,7 +219,7 @@ class HyperSwitchTransactions {
     });
   }
 
-  async refund(
+  public async refund(
     params: TransactionFetchParams,
   ): Promise<HyperSwitchResponse<TransactionResponse>> {
     return this.apiClient.request<TransactionResponse>({
@@ -265,8 +236,8 @@ export default class HyperSwitch {
   public readonly apiClient: HyperSwitchApiClient;
   public readonly transactions: HyperSwitchTransactions;
 
-  constructor(apiKey: string) {
-    this.apiClient = new HyperSwitchApiClient(apiKey);
+  constructor(apiKey: string, environment: string, proxy?: ProxyTypes) {
+    this.apiClient = new HyperSwitchApiClient(apiKey, environment, proxy);
     this.transactions = new HyperSwitchTransactions(this.apiClient);
   }
 }

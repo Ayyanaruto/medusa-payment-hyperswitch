@@ -13,27 +13,8 @@ import { RefundRepository } from '@medusajs/medusa/dist/repositories/refund';
 import { WebhookIdempotencyService } from './hyperswitch-webhook-idempotency';
 import { MedusaError } from '@medusajs/utils';
 
-type InjectedDependencies = {
-  manager: EntityManager;
-  paymentRepository: typeof PaymentRepository;
-  refundRepository: typeof RefundRepository;
-  eventBusService: EventBusService;
-  orderService: OrderService;
-  paymentService: PaymentProcessor;
-  cartService: CartService;
-  idempotencyKeyService: IdempotencyKeyService;
-  webhookIdempotencyService: WebhookIdempotencyService;
-};
+import { WebhookData,InjectedDependencies } from '../types';
 
-interface WebhookData {
-  id: string;
-  metadata?: Record<string, unknown>;
-  cart_id?: string;
-  payment_intent?: {
-    id: string;
-    metadata?: Record<string, unknown>;
-  };
-}
 
 class HyperswitchWebhook extends TransactionBaseService {
   protected manager_: EntityManager;
@@ -47,7 +28,7 @@ class HyperswitchWebhook extends TransactionBaseService {
   protected idempotencyKeyService_: IdempotencyKeyService;
   protected webhookIdempotencyService_: WebhookIdempotencyService;
 
-  constructor(container: any) {
+  constructor(container: InjectedDependencies) {
     super(container);
     this.manager_ = container.manager;
     this.paymentRepository_ = container.paymentRepository;
@@ -81,7 +62,6 @@ class HyperswitchWebhook extends TransactionBaseService {
   }
 
   private async findPaymentByCartId(cartId: string): Promise<any> {
-    console.log(`Finding payment by cart ID: ${cartId}`);
     try {
       return await this.paymentRepository_.findOne({
         where: { cart_id: cartId },
@@ -96,7 +76,6 @@ class HyperswitchWebhook extends TransactionBaseService {
   }
 
   private async findPaymentByProviderId(providerId: string): Promise<any> {
-    console.log(`Finding payment by provider ID: ${providerId}`);
     try {
       return await this.paymentRepository_.findOne({
         where: { provider_id: providerId },

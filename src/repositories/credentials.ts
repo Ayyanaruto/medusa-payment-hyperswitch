@@ -4,7 +4,7 @@ import { CredentialsType } from '../types';
 import { dataSource } from '@medusajs/medusa/dist/loaders/database';
 import Logger from '../utils/logger';
 import { encrypt, decrypt } from '../utils/encrypt';
-import path from 'path';
+
 
 const logger = new Logger();
 
@@ -62,7 +62,7 @@ const createOrUpdateCredentials = async function (data: CredentialsType) {
     logger.error(
       'Error in Credentials Creation/Update',
       e,
-      path.basename(__filename),
+      "HYPERSWITCH CREDENTIALS REPOSITORY",
     );
     throw new MedusaError(
       MedusaError.Types.DB_ERROR,
@@ -73,23 +73,29 @@ const createOrUpdateCredentials = async function (data: CredentialsType) {
 
 const extractCredentials = async function (): Promise<CredentialsType | {}> {
   try {
-    const credentials: CredentialsType[] = await this.find();
-    if (!credentials[0]) {
-      return {};
+    const [credentials]: CredentialsType[] = await this.find();
+    if(!credentials){
+      return{
+        publishable_key: '',
+        secret_key: '',
+        environment: '',
+        enable_save_cards: false,
+        capture_method: '',
+        payment_hash_key: '',
+      }
     }
-
     const decryptedSecretKey = await decryptSecretKey(
-      credentials[0].secret_key,
+      credentials.secret_key,
     );
-    credentials[0]['secret_key'] = decryptedSecretKey;
+    credentials['secret_key'] = decryptedSecretKey;
 
-    logger.logDatabase('Extracted credentials from Database', credentials[0]);
-    return { ...credentials[0] };
+    logger.logDatabase('Extracted credentials from Database', credentials);
+    return { ...credentials };
   } catch (e) {
     logger.error(
       'Error in Credentials Extraction',
       e,
-      path.basename(__filename),
+     "HYPERSWITCH CREDENTIALS REPOSITORY",
     );
     throw new MedusaError(MedusaError.Types.DB_ERROR, 'Error in extract');
   }

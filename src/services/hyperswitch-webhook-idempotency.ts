@@ -3,11 +3,7 @@ import { IdempotencyKeyService } from '@medusajs/medusa';
 import { MedusaError } from '@medusajs/utils';
 import Logger from '../utils/logger';
 
-interface IdempotencyEvent {
-  event_type: string;
-  entity_id: string;
-  metadata?: Record<string, unknown>;
-}
+import { IdempotencyEvent } from '../types';
 
 export class WebhookIdempotencyService {
   private readonly manager: EntityManager;
@@ -37,7 +33,7 @@ export class WebhookIdempotencyService {
       idempotencyKey,
     );
     if (await this.isEventAlreadyProcessed(idempotencyKey, event)) {
-      this.logger.debug(
+      this.logger.warn(
         `Event ${event.event_type} for entity ${event.entity_id} already processed, skipping`,
         idempotencyKey,
         'WEBHOOK IDEMPOTENCY SERVICE',
@@ -91,25 +87,22 @@ export class WebhookIdempotencyService {
     event: IdempotencyEvent,
   ): Promise<boolean> {
     try {
-      const existingKey = await this.idempotencyKeyService.retrieve(
+      const existingKey = await this.idempotencyKeyService.retrieve(idempotencyKey);
+      const isProcessed = !!existingKey;
+      this.logger.debug(
+        `Event ${event.event_type} for entity ${event.entity_id} ${isProcessed ? 'already processed' : 'not yet processed'}`,
         idempotencyKey,
+        'WEBHOOK IDEMPOTENCY SERVICE',
       );
-      if (existingKey) {
-        this.logger.debug(
-          `Event ${event.event_type} for entity ${event.entity_id} already processed, skipping`,
-          idempotencyKey,
-          'WEBHOOK IDEMPOTENCY SERVICE',
-        );
-        return true;
-      }
+      return isProcessed;
     } catch (error) {
       this.logger.error(
-        `Error checking if event ${event.event_type} for entity ${event.entity_id} is already processed: ${error.message}, skipping`,
+        `Error checking if event ${event.event_type} for entity ${event.entity_id} is already processed: ${error.message}`,
         error,
         'WEBHOOK IDEMPOTENCY SERVICE',
       );
+      return false;
     }
-    return false;
   }
 
   private async processEvent<T>(

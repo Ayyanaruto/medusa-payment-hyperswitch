@@ -5,7 +5,7 @@ import { generateEntityId } from "@medusajs/medusa/dist/utils";
 @Entity()
 export class Customisation extends BaseEntity {
     @Column({ type: "varchar" })
-    appearence: string;
+    appearance: string;
     @Column({ type: "varchar" })
     theme: string;
     @PrimaryColumn({ type: "varchar" })

@@ -6,7 +6,7 @@ export const useCustomisation = () => {
     '/hyperswitch/customisation',
     ['customisations'],
   );
-
+console.log(data)
   useEffect(() => {
     if (isError) {
       toast.error('Error', {

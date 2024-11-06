@@ -15,7 +15,7 @@ const LogBadge = ({ logLevel }) => {
   return <Badge color={badgeColors[logLevel]}>{logLevel}</Badge>;
 };
 const LogsRenderer = ({ logs }) => {
-  const logsPerPage = 10;
+  const logsPerPage = 15;
   const totalPages = Math.ceil(logs.length / logsPerPage);
 
   const renderLogsForPage = page => {

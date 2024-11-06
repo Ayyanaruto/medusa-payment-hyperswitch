@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { useAdminCustomQuery } from 'medusa-react';
+
 import { toast } from '@medusajs/ui';
-export const useCredentials = () => {
+
+export const useProxy = () => {
   const { data, isSuccess, isLoading, isError } = useAdminCustomQuery(
-    '/hyperswitch/configuration',
-    ['credentials'],
+    '/hyperswitch/proxy ',
+    ['proxy'],
   );
-  
   useEffect(() => {
     if (isError) {
       toast.error('Error', {

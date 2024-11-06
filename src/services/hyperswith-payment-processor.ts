@@ -7,24 +7,27 @@ import {
 } from '@medusajs/medusa';
 import { MedusaError, MedusaErrorTypes } from '@medusajs/utils';
 import CredentialsService from './credentials';
-import { CredentialsType } from '../types';
-import HyperSwitch, { TransactionStatus } from '../libs/hyperswitch';
+import ProxyService from './proxy';
+import CustomisationService from './customisation';
+import {
+  CredentialsType,
+  ProxyTypes,
+  TransactionStatus,
+  HyperswitchPaymentProcessorDependencies,
+  PaymentProcessorError,
+  BillingAddress,
+  Customer,
+  CustomisationTypes,
+} from '../types';
+import HyperSwitch from '../libs/hyperswitch';
 import { filterNull } from '../utils/filterNull';
 import Logger from '../utils/logger';
 
-interface HyperswitchPaymentProcessorDependencies {
-  credentialsService: CredentialsService;
-  cartService: CartService;
-}
-
-interface PaymentProcessorError {
-  error: string;
-  code?: string;
-  detail?: any;
-}
 
 abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
   protected readonly credentialsService: CredentialsService;
+  protected readonly proxyService: ProxyService;
+  protected readonly customisationService: CustomisationService;
   protected hyperswitch!: HyperSwitch;
   protected readonly cartService: CartService;
   private captureMethod!: string;
@@ -35,20 +38,25 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
   constructor(
     {
       credentialsService,
+      proxyService,
       cartService,
+      customisationService,
     }: HyperswitchPaymentProcessorDependencies,
     context: any,
   ) {
     super(context);
     this.credentialsService = credentialsService;
+    this.proxyService = proxyService;
     this.cartService = cartService;
+    this.customisationService = customisationService;
     this.logger = new Logger();
   }
 
   private async initializeHyperSwitch(): Promise<void> {
     try {
-      const credentials =
-        (await this.credentialsService.extract()) as CredentialsType;
+      const credentials = await this.credentialsService.extract() as CredentialsType;
+      const proxy = await this.proxyService.extract() as ProxyTypes;
+
       this.captureMethod = credentials.capture_method;
       this.setupFutureUsage = credentials.enable_save_cards;
 
@@ -59,31 +67,43 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
         );
       }
 
-      this.hyperswitch = new HyperSwitch(credentials.secret_key);
+      this.hyperswitch = new HyperSwitch(credentials.secret_key, credentials.environment, {
+        host: proxy.host,
+        port: proxy.port,
+        username: proxy.username,
+        password: proxy.password,
+        url: proxy.url,
+        enabled: proxy.enabled,
+      });
     } catch (error) {
+      this.logger.error('Failed to initialize HyperSwitch', {
+        metadata: JSON.stringify(error),
+      }, "HYPERSWITCH PAYMENT PROCESSOR");
       throw new MedusaError(
-        MedusaErrorTypes.UNEXPECTED_STATE,
+        MedusaErrorTypes.PAYMENT_AUTHORIZATION_ERROR,
         'Failed to initialize HyperSwitch',
       );
     }
   }
 
   private async createTransaction(context: PaymentProcessorContext) {
+    console.log("Inside createTransaction");
     const { amount, currency_code, resource_id } = context;
     try {
       const response = await this.hyperswitch.transactions.create({
         amount,
         currency: currency_code.toUpperCase(),
-        setup_future_usage: this.setupFutureUsage
-          ? 'on_session'
-          : 'off_session',
+        setup_future_usage: this.setupFutureUsage ? 'on_session' : 'off_session',
         capture_method: this.captureMethod,
         metadata: { cart_id: resource_id },
       });
       return this.formatResponse(response);
     } catch (error) {
+      this.logger.error('Failed to create transaction', {
+        metadata: JSON.stringify(error),
+      }, "HYPERSWITCH PAYMENT PROCESSOR");
       throw new MedusaError(
-        MedusaErrorTypes.UNEXPECTED_STATE,
+        MedusaErrorTypes.PAYMENT_AUTHORIZATION_ERROR,
         'Failed to create transaction',
       );
     }
@@ -91,6 +111,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
 
   private async updateTransaction(context: PaymentProcessorContext) {
     const { amount, billing_address, customer, paymentSessionData } = context;
+    const {theme, appearance} = await this.customisationService.extract() as CustomisationTypes;
     try {
       const response = await this.hyperswitch.transactions.update({
         payment_id: paymentSessionData.payment_id as string,
@@ -99,18 +120,23 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
         customer: this.formatCustomerData(customer, billing_address),
         amount,
         customer_id: customer.id,
+     
       });
+      response.data.theme = theme;
+      response.data.appearance = appearance;
       return this.formatResponse(response);
     } catch (error) {
-      this.logger.error('Failed to update transaction', { error },"HYPERSWITCH PAYMENT PROCESSOR");
+      this.logger.error('Failed to update transaction', {
+        metadata: JSON.stringify(error),
+      }, "HYPERSWITCH PAYMENT PROCESSOR");
       throw new MedusaError(
-        MedusaErrorTypes.UNEXPECTED_STATE,
+        MedusaErrorTypes.PAYMENT_AUTHORIZATION_ERROR,
         'Failed to update transaction',
       );
     }
   }
 
-  private formatBillingAddress(billing_address: any) {
+  private formatBillingAddress(billing_address: BillingAddress) {
     return {
       address: {
         city: billing_address.city,
@@ -125,7 +151,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
     };
   }
 
-  private formatCustomerData(customer: any, billing_address: any) {
+  private formatCustomerData(customer: Customer, billing_address: BillingAddress) {
     return {
       id: customer.id,
       email: customer.email,
@@ -140,6 +166,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
     try {
       await this.initializeHyperSwitch();
       const response = await this.createTransaction(context);
+      console.log(response);
       return this.handleResponse(response, 'Failed to initiate payment');
     } catch (error) {
       return this.buildError('Failed to initiate payment', error);
@@ -184,9 +211,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
         payment_id,
       });
 
-      if (
-        this.isValidCaptureStatus(fetchPayment.data.status as TransactionStatus)
-      ) {
+      if (this.isValidCaptureStatus(fetchPayment.data.status as TransactionStatus)) {
         const response = await this.hyperswitch.transactions.capture({
           payment_id,
         });
@@ -223,7 +248,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
     | { status: PaymentSessionStatus; data: Record<string, unknown> }
   > {
     try {
-      await this.initializeHyperSwitch(); // Initialize hyperswitch
+      await this.initializeHyperSwitch();
       const { payment_id } = paymentSessionData;
 
       if (!payment_id) {
@@ -363,6 +388,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
       return this.buildError('Failed to refund payment', error);
     }
   }
+
   private canRefundPayment(
     paymentData: any,
     amount: number,

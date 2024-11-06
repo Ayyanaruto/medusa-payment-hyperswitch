@@ -30,7 +30,7 @@ const HyperswitchPaymentButton: React.FC<ButtonProps> = ({
   const [widgets, setWidgets] = useState<any>();
   const checkoutComponent = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(false);
-
+  
   useEffect(() => {
     const scriptTag = document.createElement('script');
     scriptTag.src = 'https://beta.hyperswitch.io/v1/HyperLoader.js';
@@ -44,7 +44,7 @@ const HyperswitchPaymentButton: React.FC<ButtonProps> = ({
 
       const appearance = { theme }; // Add the appearance property
       const widgetsInstance = hyperInstance.widgets({
-        appearance,
+        appearance: appearance,
         clientSecret: 'pay_G7923fNwwYPA9cYkdAga_secret_i2A2az4IXanuC9syFFW9',
       });
       setWidgets(widgetsInstance);

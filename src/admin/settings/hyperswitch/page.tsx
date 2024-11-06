@@ -6,6 +6,7 @@ import { Heading, Container, Toaster, Tabs } from '@medusajs/ui';
 
 import HyperswitchForm from '../../components/HyperSwitchForm';
 import Customisation from '../../components/Customization';
+import ProxyForm from '../../components/ProxyForm';
 import { Logger } from '../../components/Logger';
 import icons from '../../icons';
 
@@ -21,6 +22,7 @@ const TabsContainer = ({ children }) => (
   <Tabs defaultValue='configuration'>
     <Tabs.List>
       <Tabs.Trigger value='configuration'>Configuration</Tabs.Trigger>
+      <Tabs.Trigger value='proxy_confiuguration'>Proxy Configuration</Tabs.Trigger>
       <Tabs.Trigger value='customisation'>Customisation</Tabs.Trigger>
       <Tabs.Trigger value='logs'>Logs</Tabs.Trigger>
     </Tabs.List>
@@ -43,8 +45,13 @@ const CustomSettingPage = () => {
             <HyperswitchForm />
             <Toaster />
           </Tabs.Content>
+          <Tabs.Content value='proxy_confiuguration'>
+            <ProxyForm />
+            <Toaster />
+          </Tabs.Content>
           <Tabs.Content value='customisation'>
             <Customisation />
+            <Toaster />
           </Tabs.Content>
           <Tabs.Content value='logs'>
             <Logger />

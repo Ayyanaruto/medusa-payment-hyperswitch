@@ -1,27 +1,37 @@
-import { MedusaRequest, MedusaResponse } from '@medusajs/medusa';
+import { MedusaRequest, MedusaResponse, MedusaNextFunction } from '@medusajs/medusa';
 import HyperswitchWebhookService from '../../../services/hyperswitch-webhook-processor';
 import { MedusaError } from '@medusajs/utils';
 import Logger from '../../../utils/logger';
+import CredentialsService from '../../../services/credentials';
+import { CredentialsType } from '../../../types';
+
+
 
 const logger = new Logger();
 
-type RequestBody = {
+interface Metadata {
+  cart_id: string;
+}
+
+interface RequestBody {
   event_type?: string;
   status?: string;
   payment_id?: string;
-  metadata?: {
-    cart_id: string;
+  metadata?: Metadata;
+  content?: {
+    object: {
+      payment_id: string;
+      metadata: Metadata;
+    };
   };
-object: {
-  payment_id: string;
-  metadata: {
-    cart_id: string;
-  };
-};
-};
+}
 
-const validateRequestBody = (body:any) => {
-  console.log('body', body);
+interface WebhookData {
+  id: string;
+  cart_id: string;
+}
+
+const validateRequestBody = (body: RequestBody): void => {
   const { event_type, status, payment_id, metadata } = body;
   if (!event_type && !status) {
     throw new MedusaError(
@@ -40,7 +50,13 @@ const validateRequestBody = (body:any) => {
   }
 };
 
-const logRequest = (req: MedusaRequest, res: MedusaResponse, level: string, message: string, additionalInfo: object) => {
+const logRequest = (
+  req: MedusaRequest,
+  res: MedusaResponse,
+  level: string,
+  message: string,
+  additionalInfo: object
+): void => {
   logger.logApi(level, message, {
     requestType: req.method,
     requestBody: req.body,
@@ -52,8 +68,12 @@ const logRequest = (req: MedusaRequest, res: MedusaResponse, level: string, mess
   }, 'HYPERSWITCH WEBHOOK');
 };
 
-const handleEvent = async (event_type: string, webhookData: { id: string, cart_id: string }, customPaymentService: HyperswitchWebhookService) => {
-  switch (event_type) {
+const handleEvent = async (
+  eventType: string,
+  webhookData: WebhookData,
+  customPaymentService: HyperswitchWebhookService
+): Promise<void> => {
+  switch (eventType) {
     case 'payment_succeeded':
       await customPaymentService.handlePaymentSucceeded(webhookData);
       break;
@@ -73,37 +93,51 @@ const handleEvent = async (event_type: string, webhookData: { id: string, cart_i
     default:
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Unsupported event type: ${event_type}`
+        `Unsupported event type: ${eventType}`
       );
   }
 };
 
-export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
-  console.log('req.body', req.body);
-  const start = new Date().getTime();
-  const customPaymentService = req.scope.resolve<HyperswitchWebhookService>('hyperswitchWebhookProcessorService');
-
-  const { status, event_type: initialEventType, content } = req.body as any
-  let { payment_id, metadata } = req.body as RequestBody;
-  if (!payment_id || !metadata) {
-    payment_id = content?.object?.payment_id;
-    metadata = content?.object?.metadata;
+const extractPaymentDetails = (body: RequestBody): { payment_id: string; metadata: Metadata } => {
+  const { payment_id, metadata, content } = body;
+  if (payment_id && metadata) {
+    return { payment_id, metadata };
   }
+  if (content?.object?.payment_id && content?.object?.metadata) {
+    return { payment_id: content.object.payment_id, metadata: content.object.metadata };
+  }
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
+    'Missing payment_id and metadata in request body'
+  );
+};
 
-
-  const event_type = initialEventType || `payment_${status}`;
-
+export const POST = async (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction): Promise<void> => {
   try {
-    validateRequestBody({ event_type, payment_id, metadata });
+    const credentialsService = req.scope.resolve<CredentialsService>('credentialsService');
+    const credentials: CredentialsType = await credentialsService.extract() as CredentialsType;
+    const paymentResponseHashKey = credentials.payment_hash_key;
+    
+    const start = Date.now();
+    const customPaymentService = req.scope.resolve<HyperswitchWebhookService>('hyperswitchWebhookProcessorService');
 
-    const webhookData = {
+    const { status, event_type: initialEventType } = req.body as RequestBody;
+    const { payment_id, metadata } = extractPaymentDetails(req.body as RequestBody);
+
+    const eventType = initialEventType || `payment_${status}`;
+
+    validateRequestBody({ event_type: eventType, payment_id, metadata });
+
+    const webhookData: WebhookData = {
       id: payment_id,
       cart_id: metadata.cart_id,
     };
 
-    await handleEvent(event_type, webhookData, customPaymentService);
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const end = new Date().getTime();
+    await handleEvent(eventType, webhookData, customPaymentService);
+
+    const end = Date.now();
     logRequest(req, res, 'DEBUG', 'Webhook processed successfully', {
       responseTime: end - start,
       responseBody: { received: true },
@@ -112,9 +146,9 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     res.json({ received: true });
   } catch (error) {
     logRequest(req, res, 'ERROR', `Error processing webhook: ${error.message}`, {});
-    throw new MedusaError(
+    next(new MedusaError(
       MedusaError.Types.INVALID_DATA,
       `Error processing webhook: ${error.message}`
-    );
+    ));
   }
 };

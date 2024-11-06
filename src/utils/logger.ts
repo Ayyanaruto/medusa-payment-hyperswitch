@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import chalk from 'chalk';
+import { filterNull } from './filterNull';
 
 interface LogEntry {
   level: string;
@@ -40,6 +41,9 @@ interface ApiLogMetadata {
   queryParams?: Object;
   responseBody?: Object;
   responseHeaders?: Object;
+  host?:string;
+  port?:number;
+
 }
 
 enum LogLevel {
@@ -54,6 +58,13 @@ const LOG_COLORS = {
   [LogLevel.WARN]: chalk.yellow,
   [LogLevel.INFO]: chalk.blue,
   [LogLevel.DEBUG]: chalk.gray,
+};
+
+const LOG_EMOJIS = {
+  [LogLevel.ERROR]: '❌',
+  [LogLevel.WARN]: '⚠️',
+  [LogLevel.INFO]: 'ℹ️',
+  [LogLevel.DEBUG]: '🐛',
 };
 
 class Logger {
@@ -212,7 +223,8 @@ class Logger {
     console.log('\nLogs by Level:');
     Object.entries(this.analytics.logsByLevel).forEach(([level, count]) => {
       const colorize = LOG_COLORS[level as LogLevel] || chalk.white;
-      console.log(colorize(`  ${level}: ${count}`));
+      const emoji = LOG_EMOJIS[level as LogLevel] || '';
+      console.log(colorize(`  ${emoji} ${level}: ${count}`));
     });
     console.log('\nLogs by Source:');
     Object.entries(this.analytics.logsBySource).forEach(([source, count]) => {
@@ -299,10 +311,11 @@ class Logger {
 
   private formatConsoleOutput(logEntry: LogEntry): string {
     const colorize = LOG_COLORS[logEntry.level as LogLevel] || chalk.white;
+    const emoji = LOG_EMOJIS[logEntry.level as LogLevel] || '';
     const timestamp = chalk.grey(logEntry.timestamp);
     const correlationId = chalk.grey(`[${logEntry.correlationId}]`);
     const source = logEntry.source ? chalk.cyan(`[${logEntry.source}]`) : '';
-    const message = colorize(logEntry.message);
+    const message = colorize(`${emoji} ${logEntry.message}`);
     const metadata =
       Object.keys(logEntry.metadata).length > 0
         ? chalk.grey(JSON.stringify(logEntry.metadata))
@@ -394,6 +407,10 @@ class Logger {
   }
 
   async error(message: string, metadata: any, source?: string): Promise<void> {
+    let maskedMetadata = this.maskSensitiveData(metadata, 'payment');
+    maskedMetadata = this.maskSensitiveData(maskedMetadata, 'auth');
+    maskedMetadata = this.maskSensitiveData(maskedMetadata, 'encryption');
+    maskedMetadata = this.maskSensitiveData(maskedMetadata, 'database');
     const logEntry: LogEntry = {
       level: LogLevel.ERROR,
       message,
