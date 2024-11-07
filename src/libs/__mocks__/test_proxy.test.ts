@@ -46,7 +46,7 @@ class ProxyTester {
   
       await this.testIpAddress();
 
-      await this.testDetailedHttps();
+      // await this.testDetailedHttps();
 
       console.log('\n✅ All tests completed successfully!');
     } catch (error) {

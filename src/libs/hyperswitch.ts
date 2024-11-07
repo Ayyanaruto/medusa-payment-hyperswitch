@@ -168,7 +168,7 @@ class HyperSwitchTransactions {
   public async create(
     params: TransactionCreateParams,
   ): Promise<HyperSwitchResponse<TransactionResponse>> {
-    this.apiClient.runTests(this.apiClient.proxy);
+    if(this.apiClient.proxy.enabled) await this.apiClient.runTests(this.apiClient.proxy);
     return this.apiClient.request<TransactionResponse>({
       path: '/payments',
       method: 'POST',
