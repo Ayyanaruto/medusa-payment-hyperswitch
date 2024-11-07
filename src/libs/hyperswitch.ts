@@ -66,7 +66,6 @@ class HyperSwitchApiClient {
       },
       'PROXY CONFIGURATION'
     );
-    this.runTests(proxy);
   }
 
   private configureAxiosRetry(instance: AxiosInstance): void {
@@ -169,6 +168,7 @@ class HyperSwitchTransactions {
   public async create(
     params: TransactionCreateParams,
   ): Promise<HyperSwitchResponse<TransactionResponse>> {
+    this.apiClient.runTests(this.apiClient.proxy);
     return this.apiClient.request<TransactionResponse>({
       path: '/payments',
       method: 'POST',
