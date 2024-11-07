@@ -8,7 +8,6 @@ interface RetryConfig {
   retryDelay: number;
 }
 
-const container = createContainer();
 class ProxyTester {
   private readonly defaultRetryConfig: RetryConfig = {
     maxRetries: 3,
@@ -18,7 +17,6 @@ class ProxyTester {
   constructor(
     private readonly proxy: ProxyTypes,
     private readonly retryConfig: RetryConfig = { maxRetries: 3, retryDelay: 1000 },
-    private readonly proxyRepository: any = container.resolve('proxyRepository')
   ) {}
 
   async runAllTests(): Promise<void> {

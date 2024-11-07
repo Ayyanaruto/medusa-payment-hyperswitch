@@ -87,7 +87,6 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
   }
 
   private async createTransaction(context: PaymentProcessorContext) {
-    console.log("Inside createTransaction");
     const { amount, currency_code, resource_id } = context;
     try {
       const response = await this.hyperswitch.transactions.create({
@@ -166,10 +165,10 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
     try {
       await this.initializeHyperSwitch();
       const response = await this.createTransaction(context);
-      console.log(response);
+  
       return this.handleResponse(response, 'Failed to initiate payment');
     } catch (error) {
-      return this.buildError('Failed to initiate payment', error);
+      return this.buildError('Failed to initiate payment', error.message);
     }
   }
 
@@ -227,7 +226,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
         });
       }
     } catch (error) {
-      return this.buildError('Failed to capture payment', error);
+      return this.buildError('Failed to capture payment', error.message);
     }
   }
 
@@ -271,7 +270,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
         data: data as Record<string, unknown>,
       };
     } catch (error) {
-      return this.buildError('Failed to authorize payment', error);
+      return this.buildError('Failed to authorize payment', error.message);
     }
   }
 
@@ -289,7 +288,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
         data: filterNull(paymentData.data),
       };
     } catch (error) {
-      return this.buildError('Failed to retrieve payment', error);
+      return this.buildError('Failed to retrieve payment', error.message);
     }
   }
 
@@ -309,7 +308,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
         data: filterNull(paymentData.data),
       };
     } catch (error) {
-      return this.buildError('Failed to cancel payment', error);
+      return this.buildError('Failed to cancel payment', error.message);
     }
   }
 
@@ -340,7 +339,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
         });
       }
     } catch (error) {
-      return this.buildError('Failed to cancel payment', error);
+      return this.buildError('Failed to cancel payment', error.message);
     }
   }
 
@@ -385,7 +384,7 @@ abstract class HyperswitchPaymentProcessor extends AbstractPaymentProcessor {
         });
       }
     } catch (error) {
-      return this.buildError('Failed to refund payment', error);
+      return this.buildError('Failed to refund payment', error.message);
     }
   }
 

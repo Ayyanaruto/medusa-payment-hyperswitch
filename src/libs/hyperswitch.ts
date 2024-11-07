@@ -81,7 +81,10 @@ class HyperSwitchApiClient {
 
   public async runTests(proxy: ProxyTypes): Promise<void> {
     try {
+
       await testProxyConfiguration(proxy);
+      return;
+
     } catch (error) {
       this.logger.error('Failed to run proxy tests', { error });
     }
@@ -168,7 +171,6 @@ class HyperSwitchTransactions {
   public async create(
     params: TransactionCreateParams,
   ): Promise<HyperSwitchResponse<TransactionResponse>> {
-    if(this.apiClient.proxy.enabled) await this.apiClient.runTests(this.apiClient.proxy);
     return this.apiClient.request<TransactionResponse>({
       path: '/payments',
       method: 'POST',
