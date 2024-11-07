@@ -6,7 +6,7 @@ import type {
 import Logger from '../utils/logger';
 import { MedusaError, MedusaErrorTypes } from '@medusajs/utils';
 import { CredentialsRepository } from '../repositories/credentials';
-import { CredentialsType } from 'src/types';
+import { CredentialsType } from '../types';
 
 type OrderPlacedData = {
   id: string;

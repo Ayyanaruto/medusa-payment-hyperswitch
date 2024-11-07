@@ -1,7 +1,7 @@
 import { TransactionBaseService } from '@medusajs/medusa';
 import { MedusaError } from '@medusajs/utils';
 import { Proxy } from '../models/proxy';
-import { ProxyRepository } from 'src/repositories/proxy';
+import { ProxyRepository } from '../repositories/proxy';
 import { ProxyTypes } from '../types';
 
 

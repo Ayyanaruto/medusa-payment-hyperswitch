@@ -1,5 +1,5 @@
 {
-  "name": "medusa-starter-default",
+  "name": "h",
   "version": "0.0.1",
   "description": "A starter for Medusa projects.",
   "author": "Medusa (https://medusajs.com)",
@@ -17,6 +17,7 @@
     "build": "cross-env npm run clean && npm run build:server && npm run build:admin",
     "build:server": "cross-env npm run clean && tsc -p tsconfig.server.json",
     "build:admin": "cross-env medusa-admin build",
+    "prepare": "cross-env NODE_ENV=production npm run build:server && medusa-admin bundle",
     "watch": "cross-env tsc --watch",
     "test": "cross-env jest",
     "seed": "cross-env medusa seed -f ./data/seed.json",
@@ -27,6 +28,7 @@
     "lint:fix": "eslint --ignore-pattern .gitignore,node_modules . --fix && prettier --write ."
   },
   "dependencies": {
+    "@ayyan_1406/medusa-payment-hyperswitch": "0.0.1",
     "@juspay-tech/hyper-js": "^1.6.0",
     "@juspay-tech/react-hyper-js": "^1.2.1",
     "@medusajs/admin": "^7.1.16",
@@ -103,5 +105,6 @@
   },
   "resolutions": {
     "glob": "^7.1.6"
-  }
+  },
+  "main": "index.js"
 }
