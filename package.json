@@ -5,7 +5,7 @@
   "author": "Medusa (https://medusajs.com)",
   "license": "MIT",
   "keywords": [
-"   hyperswitch",
+    "   hyperswitch",
     "ecommerce",
     "headless",
     "medusa",
@@ -32,7 +32,6 @@
     "lint:fix": "eslint --ignore-pattern .gitignore,node_modules . --fix && prettier --write ."
   },
   "dependencies": {
-    "@ayyan_1406/medusa-payment-hyperswitch": "0.0.1",
     "@juspay-tech/hyper-js": "^1.6.0",
     "@juspay-tech/react-hyper-js": "^1.2.1",
     "@medusajs/admin": "^7.1.16",
