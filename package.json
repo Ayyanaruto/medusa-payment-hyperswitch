@@ -1,16 +1,20 @@
 {
-  "name": "h",
+  "name": "medusa-payment-hyperswitch",
   "version": "0.0.1",
-  "description": "A starter for Medusa projects.",
+  "description": "A payment provider for Medusa using HyperSwitch",
   "author": "Medusa (https://medusajs.com)",
   "license": "MIT",
   "keywords": [
-    "sqlite",
-    "postgres",
-    "typescript",
+"   hyperswitch",
     "ecommerce",
     "headless",
-    "medusa"
+    "medusa",
+    "medusa-plugin",
+    "medusa-plugin-payment",
+    "payment",
+    "payment-provider",
+    "stripe",
+    "stripe-payment"
   ],
   "scripts": {
     "clean": "cross-env ./node_modules/.bin/rimraf dist",
