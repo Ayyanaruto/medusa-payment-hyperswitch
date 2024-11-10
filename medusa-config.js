@@ -51,7 +51,8 @@ const plugins = [
         open: process.env.OPEN_BROWSER !== "false",
       },
     },
-  },
+  }
+ 
 ];
 
 const modules = {

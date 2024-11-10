@@ -1,22 +1,27 @@
 {
-  "name": "medusa-starter-default",
+  "name": "medusa-payment-hyperswitch",
   "version": "0.0.1",
-  "description": "A starter for Medusa projects.",
+  "description": "A payment provider for Medusa using HyperSwitch",
   "author": "Medusa (https://medusajs.com)",
   "license": "MIT",
   "keywords": [
-    "sqlite",
-    "postgres",
-    "typescript",
+    "   hyperswitch",
     "ecommerce",
     "headless",
-    "medusa"
+    "medusa",
+    "medusa-plugin",
+    "medusa-plugin-payment",
+    "payment",
+    "payment-provider",
+    "stripe",
+    "stripe-payment"
   ],
   "scripts": {
     "clean": "cross-env ./node_modules/.bin/rimraf dist",
     "build": "cross-env npm run clean && npm run build:server && npm run build:admin",
     "build:server": "cross-env npm run clean && tsc -p tsconfig.server.json",
     "build:admin": "cross-env medusa-admin build",
+    "prepare": "cross-env NODE_ENV=production npm run build:server && medusa-admin bundle",
     "watch": "cross-env tsc --watch",
     "test": "cross-env jest",
     "seed": "cross-env medusa seed -f ./data/seed.json",
@@ -103,5 +108,6 @@
   },
   "resolutions": {
     "glob": "^7.1.6"
-  }
+  },
+  "main": "index.js"
 }
