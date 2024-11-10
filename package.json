@@ -1,6 +1,6 @@
 {
   "name": "medusa-payment-hyperswitch",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A payment provider for Medusa using HyperSwitch",
   "author": "Medusa (https://medusajs.com)",
   "license": "MIT",
