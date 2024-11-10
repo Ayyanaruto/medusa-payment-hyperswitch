@@ -6,6 +6,7 @@
 yarn-error.log
 application.log
 analytics.log
+medusa-config.js
 
 .idea
 
