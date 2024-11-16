@@ -169,7 +169,6 @@ const ConfigurationForm = () => {
 if(isLoadingData){
   return <SpinnerPage />;
 }
-console.log(formState.enableSaveCards);
   return (
     <form className="grid grid-cols-5 gap-3 mt-6" onSubmit={handleSubmit}>
       <FormContent

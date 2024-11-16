@@ -3,9 +3,10 @@ import Configuration from "./models/configuration";
 import {MedusaError} from "@medusajs/framework/utils";
 
 import { ConfigurationType } from "../../types/models-types";
-import { encryptSecretKey,decryptSecretKey } from "../../utils/configuration-utils";
+import { encryptSecretKey,decryptSecretKey,Logger } from "../../utils";
 
 type Configuration = ConfigurationType;
+const logger = new Logger();
 
 class ConfigurationService extends MedusaService({
     Configuration,
@@ -25,15 +26,18 @@ class ConfigurationService extends MedusaService({
                     secretKey: hashedSecretKey,
                    }
                 );
+               logger.debug("Configuration updated successfully", { result }, "HYPER_SWITCH_CONFIGURATION_DATABASE");
             } else {
                 result = await this.createConfigurations({
                     ...data,
                     secretKey: hashedSecretKey,
                 });
+                logger.debug("Configuration created successfully", { result }, "HYPER_SWITCH_CONFIGURATION_DATABASE");
             }
 
             return result;
         } catch (e) {
+            logger.error("Error in upserting configuration", e.message, "HYPER_SWITCH_CONFIGURATION_DATABASE");
             throw new MedusaError(
                 MedusaError.Types.DB_ERROR,
                 "Error in upserting configuration"
@@ -59,9 +63,11 @@ class ConfigurationService extends MedusaService({
             }
 
             configuration.secretKey = await decryptSecretKey(configuration.secretKey);
+            logger.debug("Configuration extracted successfully", { configuration }, "HYPER_SWITCH_CONFIGURATION_DATABASE");
 
             return configuration;
         } catch (e) {
+            logger.error("Error in retrieving configuration", e.message, "HYPER_SWITCH_CONFIGURATION_DATABASE");
             throw new MedusaError(
                 MedusaError.Types.DB_ERROR,
                 "Error in retrieving configuration"

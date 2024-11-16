@@ -7063,7 +7063,7 @@ fetch-event-stream@^0.1.5:
   resolved "https://registry.yarnpkg.com/fetch-event-stream/-/fetch-event-stream-0.1.5.tgz#ffc5a8f57a040e3eb78d9f990632c2a3fd253c02"
   integrity sha512-V1PWovkspxQfssq/NnxoEyQo1DV+MRK/laPuPblIZmSjMN8P5u46OhlFQznSr9p/t0Sp8Uc6SbM3yCMfr0KU8g==
 
-figlet@^1.5.2:
+figlet@^1.5.2, figlet@^1.8.0:
   version "1.8.0"
   resolved "https://registry.yarnpkg.com/figlet/-/figlet-1.8.0.tgz#1b93c4f65f4c1a3b1135221987eee8cf8b9c0ac7"
   integrity sha512-chzvGjd+Sp7KUvPHZv6EXV5Ir3Q7kYNpCr4aHrRW79qFtTefmQZNny+W1pW9kf5zeE6dikku2W50W/wAH2xWgw==
