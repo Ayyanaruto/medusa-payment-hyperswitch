@@ -1,0 +1,1 @@
+export { validateConfigForm } from "./validateConfigurationForm";
