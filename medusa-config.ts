@@ -15,6 +15,9 @@ module.exports = defineConfig({
   },modules: [
     {
       resolve:"./src/modules/configurations",
+    },
+    {
+      resolve:"./src/modules/proxy",
     }
   ]
 })

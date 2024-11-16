@@ -31,5 +31,6 @@
     ".medusa/server",
     ".medusa/admin",
     ".cache",
+    "*.log"
   ]
 }

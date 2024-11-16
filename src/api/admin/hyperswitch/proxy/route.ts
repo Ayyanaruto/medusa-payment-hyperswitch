@@ -2,12 +2,9 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
 import { MedusaError } from "@medusajs/framework/utils";
 
 import { handleApiLogs } from "../../../../utils/logger";
-import { CONFIG_MODULE } from "../../../../modules/configurations";
-import ConfigurationsService from "../../../../modules/configurations/service";
-import { ConfigurationType } from "../../../../types/models-types";
-
-
-
+import { ProxyType } from "../../../../types/models-types";
+import { PROXY_MODULE } from "../../../../modules/proxy";
+import  ProxyService  from "../../../../modules/proxy/service";
 
 export const GET = async (
   req: MedusaRequest,
@@ -15,28 +12,28 @@ export const GET = async (
 ): Promise<void> => {
   try {
     const start = Date.now();
-    const configurationsService:ConfigurationsService = req.scope.resolve(CONFIG_MODULE)
-    const configurations = await configurationsService.extract();
+    const proxyService:ProxyService = req.scope.resolve(PROXY_MODULE)
+    const proxy = await proxyService.extract();
     const end = Date.now();
 
     handleApiLogs( {
-      message: "Configuration extracted successfully",
-      source: "HYPER_SWITCH_CONFIGURATION_API",
+      message: "Proxy extracted successfully",
+      source: "HYPER_SWITCH_PROXY_API",
       method: req.method,
       url: req.originalUrl,
       status: res.statusCode,
       responseTime: end - start,
       requestBody: req.body,
-      responseBody: { ...configurations },
+      responseBody: { ...proxy },
       headers: req.headers,
     });
 
-    res.status(200).json({ configurations });
+    res.status(200).json({ proxy });
   }
   catch (error) {
     handleApiLogs({
-      message: "Error in extracting configuration" ,
-      source: "HYPER_SWITCH_CONFIGURATION_API",
+      message: "Error in extracting proxy" ,
+      source: "HYPER_SWITCH_PROXY_API",
       method: req.method,
       url: req.originalUrl,
       status: 500,
@@ -46,50 +43,52 @@ export const GET = async (
     });
     throw new MedusaError(
       MedusaError.Types.DB_ERROR,
-      "Error in extracting configuration"
+      "Error in extracting proxy"
     );
   }
 };
+
 
 export const POST = async (
   req: MedusaRequest,
   res: MedusaResponse
 ): Promise<void> => {
-const configurationsService:ConfigurationsService = req.scope.resolve(CONFIG_MODULE)
+  const proxyService:ProxyService = req.scope.resolve(PROXY_MODULE)
   const data = req.body;
   try {
     const start = Date.now();
-    const configuration = await configurationsService.upsert(data as ConfigurationType);
+    console.log("data", data);
+    const proxy = await proxyService.upsert(data as ProxyType);
     const end = Date.now();
 
-    handleApiLogs({
-      message: "Configuration upserted successfully",
-      source: "HYPER_SWITCH_CONFIGURATION_API",
+    handleApiLogs( {
+      message: "Proxy upserted successfully",
+      source: "HYPER_SWITCH_PROXY_API",
       method: req.method,
       url: req.originalUrl,
       status: res.statusCode,
       responseTime: end - start,
       requestBody: req.body,
-      responseBody: { ...configuration },
+      responseBody: { ...proxy },
       headers: req.headers,
     });
 
-    res.status(200).json({ configuration });
-  } catch (error) {
+    res.status(200).json({ proxy });
+  }
+  catch (error) {
     handleApiLogs({
-      message: "Error in upserting configuration",
-      source: "HYPER_SWITCH_CONFIGURATION_API",
+      message: "Error in upserting proxy" ,
+      source: "HYPER_SWITCH_PROXY_API",
       method: req.method,
       url: req.originalUrl,
       status: 500,
       responseTime: 0,
       error: error.message,
-      stack: error.stack,
       headers: req.headers,
     });
     throw new MedusaError(
       MedusaError.Types.DB_ERROR,
-      "Error in upserting configuration"
+      "Error in upserting proxy"
     );
   }
 };

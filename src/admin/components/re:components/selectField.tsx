@@ -13,7 +13,7 @@ interface SelectFieldProps {
   label: string;
   isEditing: boolean;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: any) => void;
   error?: string;
   options: { value: string; label: string }[];
 }
