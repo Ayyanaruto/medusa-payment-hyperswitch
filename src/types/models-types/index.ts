@@ -1,4 +1,4 @@
 import { ConfigurationType } from "./configuration";
 import { ProxyType } from "./proxy";
-
-export { ConfigurationType, ProxyType };
+import { CustomizationType } from "./customizations";
+export { ConfigurationType, ProxyType ,CustomizationType};

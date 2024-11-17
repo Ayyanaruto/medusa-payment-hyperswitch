@@ -1,8 +1,8 @@
 import { MedusaService } from "@medusajs/framework/utils";
-import Configuration from "./models/configuration";
 import {MedusaError} from "@medusajs/framework/utils";
 
 import { ConfigurationType } from "../../types/models-types";
+import Configuration from "./models/configuration";
 import { encryptSecretKey,decryptSecretKey,Logger } from "../../utils";
 
 type Configuration = ConfigurationType;

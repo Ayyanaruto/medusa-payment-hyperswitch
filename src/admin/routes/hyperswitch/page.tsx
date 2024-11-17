@@ -4,7 +4,7 @@ import { Heading, Container, Toaster, Tabs } from "@medusajs/ui";
 import { QueryClient } from "@tanstack/react-query";
 import { MedusaProvider } from "medusa-react";
 
-import { ConfigurationForm,ProxyConfigurationForm } from "../../components";
+import { ConfigurationForm,ProxyConfigurationForm,Customisation } from "../../components";
 import { TabsContainer } from "../../components/re:components";
 import icons from "../../icons";
 
@@ -37,6 +37,10 @@ const HyperswitchPage = () => {
           </Tabs.Content>
           <Tabs.Content value="proxy_configuration">
             <ProxyConfigurationForm />
+            <Toaster />
+          </Tabs.Content>
+          <Tabs.Content value="customisation">
+            <Customisation />
             <Toaster />
           </Tabs.Content>
         </TabsContainer>
