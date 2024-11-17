@@ -52,6 +52,7 @@ class ConfigurationService extends MedusaService({
                 id: "",
                 publishableKey: "",
                 secretKey: "",
+                profileId: "",
                 paymentHashKey: "",
                 enableSaveCards: false,
                 environment: "sandbox",

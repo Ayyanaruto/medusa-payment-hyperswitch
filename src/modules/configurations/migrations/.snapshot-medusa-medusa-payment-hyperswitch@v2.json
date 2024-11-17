@@ -42,6 +42,15 @@
           "nullable": false,
           "mappedType": "text"
         },
+        "profileId": {
+          "name": "profileId",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
         "environment": {
           "name": "environment",
           "type": "text",

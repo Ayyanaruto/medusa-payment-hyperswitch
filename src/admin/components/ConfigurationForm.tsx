@@ -81,6 +81,16 @@ const FormContent = ({
         value={formState.paymentHashKey}
       />
     </FormField>
+    <FormField label="Profile ID" error={errors.profile_id}>
+      <Input
+        placeholder="Enter your Profile ID"
+        id="profile-id"
+        name="profile-id"
+        onChange={handleChange.profileId}
+        disabled={!isEditing}
+        value={formState.profileId}
+      />
+    </FormField>
     <EnvironmentSelect
       isEditing={isEditing}
       value={formState.environment}

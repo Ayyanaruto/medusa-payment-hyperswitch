@@ -8,6 +8,7 @@ export const useConfigurationForm = () => {
   const [environment, setEnvironment] = useState<("sandbox"|"production")>("sandbox");
   const [captureMethod, setCaptureMethod] = useState<("manual"|"automatic")>("manual");
   const [enableSaveCards, setEnableSaveCards] = useState<boolean>(false);
+  const [profileId, setProfileId] = useState<string>("");
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -18,7 +19,8 @@ export const useConfigurationForm = () => {
       setSecretKey(event.target.value),
     paymentHashKey: (event: React.ChangeEvent<HTMLInputElement>) =>
       setPaymentHashKey(event.target.value),
-
+profileId: (event: React.ChangeEvent<HTMLInputElement>) =>
+      setProfileId(event.target.value),
     environment: (value: "sandbox" | "production") => setEnvironment(value),
     captureMethod: (value: "manual" | "automatic") => setCaptureMethod(value),
     enableSaveCards: (checked: boolean) => setEnableSaveCards(checked),
@@ -29,6 +31,7 @@ export const useConfigurationForm = () => {
       publishableKey,
       secretKey,
       paymentHashKey,
+      profileId,
       environment,
       captureMethod,
       enableSaveCards,
@@ -37,6 +40,7 @@ export const useConfigurationForm = () => {
       setPublishableKey,
        setSecretKey,
        setPaymentHashKey,
+        setProfileId,
       setEnvironment,
        setCaptureMethod,
       setEnableSaveCards,

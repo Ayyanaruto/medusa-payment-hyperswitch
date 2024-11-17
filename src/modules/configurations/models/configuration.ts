@@ -5,6 +5,7 @@ id:model.id().primaryKey(),
 publishableKey:model.text(),
 secretKey:model.text(),
 paymentHashKey:model.text(),
+profileId:model.text(),
 environment:model.enum(["sandbox","production"]).default("sandbox"),
 captureMethod:model.enum(["manual","automatic"]).default("automatic"),
 enableSaveCards:model.boolean()
