@@ -3,7 +3,7 @@ import { loadEnv, defineConfig } from '@medusajs/framework/utils'
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
 module.exports = defineConfig({
- projectConfig: {
+  projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     http: {
       storeCors: process.env.STORE_CORS!,
@@ -22,6 +22,17 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/customization",
+    },
+    {
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: [
+          {
+            id: "hyperswitch",
+            resolve: "./src/modules/hyperswitch",
+          }
+        ]
+      },
     },
   ],
 });
