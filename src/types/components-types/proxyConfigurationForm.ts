@@ -2,7 +2,7 @@ export interface ProxyTypes{
   isActive: boolean;
   host: string;
   protocol: "http"|"https";
-  url: string;
+  url?: string;
   username: string;
   password: string;
   port: number;
