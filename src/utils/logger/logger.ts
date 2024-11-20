@@ -7,6 +7,83 @@ import figlet from "figlet";
 import { LogLevel, LogEntry, LogAnalytics, SensitiveFields, LOG_COLORS, LOG_EMOJIS,ERROR_COMMENTS } from "../../types/utils-types";
 
 
+/**
+ * Logger class to handle logging, log rotation, and analytics.
+ *
+ * @class Logger
+ * @property {string} logFile - Path to the log file.
+ * @property {string} analyticsFile - Path to the analytics file.
+ * @property {SensitiveFields} sensitiveFields - Fields to be masked in logs.
+ * @property {number} rotationSizeInBytes - Maximum size of the log file before rotation.
+ * @property {number} maxLogFiles - Maximum number of log files to keep.
+ * @property {LogAnalytics} analytics - Analytics data for logs.
+ * @property {NodeJS.Timeout} analyticsUpdateInterval - Interval for updating analytics.
+ *
+ * @constructor
+ * @param {string} [logDirectory] - Directory to store log files.
+ * @param {number} [rotationSizeInBytes=5242880] - Maximum size of the log file before rotation (default is 5MB).
+ * @param {number} [maxLogFiles=5] - Maximum number of log files to keep (default is 5).
+ * @param {number} [analyticsUpdateFrequency=300000] - Frequency of analytics update in milliseconds (default is 5 minutes).
+ *
+ * @method initializeAnalytics - Initializes the analytics data.
+ * @returns {LogAnalytics} - The initialized analytics data.
+ *
+ * @method startAnalyticsUpdate - Starts the interval for updating analytics.
+ * @param {number} frequency - Frequency of analytics update in milliseconds.
+ *
+ * @method parseLogLine - Parses a log line to extract log entry.
+ * @param {string} line - The log line to parse.
+ * @returns {LogEntry | null} - The parsed log entry or null if parsing fails.
+ *
+ * @method updateAnalytics - Updates the analytics data based on the log file.
+ *
+ * @method printAnalyticsSummary - Prints a summary of the analytics data to the console.
+ *
+ * @method ensureLogFileExists - Ensures that the log file and its directory exist.
+ *
+ * @method maskSensitiveData - Masks sensitive data in the log entry.
+ * @param {any} data - The data to mask.
+ * @param {string} operation - The operation type to determine which fields to mask.
+ * @returns {any} - The masked data.
+ *
+ * @method formatLogEntry - Formats a log entry into a string.
+ * @param {LogEntry} logEntry - The log entry to format.
+ * @returns {string} - The formatted log entry string.
+ *
+ * @method rotateLogsIfNeeded - Rotates the log files if the current log file exceeds the maximum size.
+ *
+ * @method generateCorrelationId - Generates a unique correlation ID.
+ * @returns {string} - The generated correlation ID.
+ *
+ * @method formatConsoleOutput - Formats the log entry for console output.
+ * @param {LogEntry} logEntry - The log entry to format.
+ * @returns {string} - The formatted console output string.
+ *
+ * @method writeLog - Writes a log entry to the log file and console.
+ * @param {LogEntry} logEntry - The log entry to write.
+ *
+ * @method info - Logs an info level message.
+ * @param {string} message - The log message.
+ * @param {any} metadata - Additional metadata for the log entry.
+ * @param {string} [source] - The source of the log entry.
+ *
+ * @method error - Logs an error level message.
+ * @param {string} message - The log message.
+ * @param {any} metadata - Additional metadata for the log entry.
+ * @param {string} [source] - The source of the log entry.
+ *
+ * @method debug - Logs a debug level message.
+ * @param {string} message - The log message.
+ * @param {any} metadata - Additional metadata for the log entry.
+ * @param {string} [source] - The source of the log entry.
+ *
+ * @method warn - Logs a warn level message.
+ * @param {string} message - The log message.
+ * @param {any} metadata - Additional metadata for the log entry.
+ * @param {string} [source] - The source of the log entry.
+ *
+ * @method destroy - Cleans up resources used by the logger.
+ */
 export class Logger {
     protected logFile: string;
     protected analyticsFile: string;

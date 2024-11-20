@@ -4,6 +4,14 @@ import { MedusaError } from "@medusajs/framework/utils";
 import { EncryptionResult } from "../../../types/utils-types";
 import { Logger } from "../../";
 
+/**
+ * Encrypts the given plaintext using AES-256-GCM with the provided key.
+ *
+ * @param {string} key - The encryption key in base64 format.
+ * @param {string} plaintext - The plaintext to be encrypted.
+ * @returns {Promise<EncryptionResult>} A promise that resolves to an object containing the ciphertext, authentication tag, and initialization vector.
+ * @throws {MedusaError} Throws an error if encryption fails.
+ */
 export const encrypt = async (
   key: string,
   plaintext: string

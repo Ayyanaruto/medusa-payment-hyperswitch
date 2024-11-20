@@ -13,7 +13,6 @@ export class HyperSwitchApiClient {
 
   constructor(apiKey: string, environment: string, proxy?: ProxyTypes) {
     this.proxy = proxy;
-    console.trace("Proxy", proxy);
     const HYPERSWITCH_API_PATH =
       environment === "production"
         ? "https://api.hyperswitch.io"

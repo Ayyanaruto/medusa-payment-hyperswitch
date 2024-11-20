@@ -25,13 +25,40 @@ export interface HyperSwitchResponse<T> {
   data: T;
 }
 
+export interface Address {
+  first_name?: string;
+  last_name?: string;
+  city?: string;
+  country?: string;
+  line1?: string;
+  line2?: string;
+  zip?: string;
+  state?: string;
+}
 
+interface Customer {
+  id?: string;
+  email?: string;
+  phone?: string;
+  name?: string;
+}
 export interface TransactionCreateParams {
   amount: BigNumberInput;
   currency: string;
-  capture_method:"manual"|"automatic";
+  capture_method: "manual" | "automatic";
   profile_id: string;
   setup_future_usage?: string;
+  billing: {
+    address: Address
+  };
+  shipping: {
+    address: Address
+    phone:{
+      number: string;
+    },
+    email: string;
+  };
+  customer?: Customer;
   metadata?: Record<string, unknown>;
 }
 
@@ -40,38 +67,14 @@ payment_id: string;
 capture_method: string;
 profile_id: string;
 billing_address: {
-  address:{
-    first_name: string;
-    last_name: string;
-    city: string;
-    country: string;
-    line1: string;
-    line2: string;
-    zip: string;
-    state: string;
-  }
+  address:Address
 };
 shipping: {
-  address:{
-    first_name: string;
-    last_name: string;
-    city: string;
-    country: string;
-    line1: string;
-    line2: string;
-    line3: string;
-    zip: string;
-    state: string;
-  }
+  address:Address
   email: string;
   phone: string;
 };
-customer?: {
-  id: string;
-  email: string;
-  phone: string;
-  name: string;
-};
+customer?: Customer
 }
 export interface TransactionFetchParams {
   payment_id: string;
@@ -94,7 +97,8 @@ export interface TransactionRefundParams {
 
 export interface TransactionAuthorizeParams {
   payment_id: string;
-  payment_method: string;
+ client_secret?: string;
+ amount: BigNumberInput
 }
 
 export interface TransactionResponse extends PaymentProviderSessionResponse {
@@ -104,40 +108,17 @@ export interface TransactionResponse extends PaymentProviderSessionResponse {
   currency: string;
   capture_method: string;
   setup_future_usage: string;
+  client_secret: string;
   metadata: Record<string, unknown>;
   profileId: string;
   billing_address: {
-    address:{
-      first_name: string;
-      last_name: string;
-      city: string;
-      country: string;
-      line1: string;
-      line2: string;
-      zip: string;
-      state: string;
-    }
+    address:Address
   };
   shipping: {
-    address:{
-      first_name: string;
-      last_name: string;
-      city: string;
-      country: string;
-      line1: string;
-      line2: string;
-      line3: string;
-      zip: string;
-      state: string;
-    }
+    address:Address
     email: string;
     phone: string;
   };
-  customer?: {
-    id: string;
-    email: string;
-    phone: string;
-    name: string;
-  };
+  customer?: Customer;
 }
 

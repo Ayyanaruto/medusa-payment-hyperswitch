@@ -6,6 +6,22 @@ import {Logger} from "../../";
 
 
 
+/**
+ * Decrypts the given ciphertext using AES-256-GCM algorithm.
+ *
+ * @param {DecryptionInput} text - The input object containing the ciphertext, key, iv, and tag.
+ * @returns {Promise<string>} - The decrypted plaintext.
+ * @throws {MedusaError} - Throws an error if decryption fails.
+ *
+ * @example
+ * const decryptedText = await decrypt({
+ *   ciphertext: "encryptedText",
+ *   key: "base64EncodedKey",
+ *   iv: "base64EncodedIV",
+ *   tag: "base64EncodedTag"
+ * });
+ * console.log(decryptedText);
+ */
 export const decrypt = async (text: DecryptionInput): Promise<string> => {
   const logger = new Logger();
   try {

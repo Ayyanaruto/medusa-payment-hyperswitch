@@ -1,21 +1,26 @@
 import {
   AbstractPaymentProvider,
   MedusaError,
+  PaymentSessionStatus as PaymentSession
 } from "@medusajs/framework/utils";
 import { MedusaContainer } from "@medusajs/framework";
-
 import {
-  CreatePaymentProviderSession,
   PaymentProviderError,
   PaymentProviderSessionResponse,
-  UpdatePaymentProviderSession,
+  PaymentSessionStatus
 } from "@medusajs/types";
 
 import HyperSwitch from "../../libs/hyperswitch";
-
 import { configWorkflow, customWorkflow, proxyWorkflow } from "../../workflows";
+import {
+  Logger,
+  toHyperSwitchAmount,
+  canCancelPayment,
+  formatPaymentData,
+  mapProcessorStatusToPaymentStatus,
+} from "../../utils";
+import { CreatePaymentProviderSession } from "../../types/payment-processor-types";
 
-import { Logger, toHyperSwitchAmount } from "../../utils";
 
 class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   static identifier: string = "hyperswitch";
@@ -23,7 +28,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   private hyperswitch: HyperSwitch;
   private captureMethod: "manual" | "automatic";
   private setupFutureUsage: boolean;
-  private profieId: string;
+  private profileId: string;
   private theme: string;
   private styles: Record<string, unknown>;
   protected logger: Logger;
@@ -32,40 +37,31 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
     super(container);
     this.logger = new Logger();
   }
-  /*Initializing Hyperswitch libs with required properties in payment flow */
 
-  async init() {
+  private async initializeHyperswitch(): Promise<void> {
     try {
-      const { result } = await configWorkflow().run();
+      const { result: configResult } = await configWorkflow().run();
       const { result: proxyResult } = await proxyWorkflow().run();
       const { result: customResult } = await customWorkflow().run();
+
       this.hyperswitch = new HyperSwitch(
-        result.secretKey,
-        result.environment,
+        configResult.secretKey,
+        configResult.environment,
         proxyResult
       );
-      this.captureMethod = result.captureMethod;
-      this.setupFutureUsage = result.enableSaveCards;
+      this.captureMethod = configResult.captureMethod;
+      this.setupFutureUsage = configResult.enableSaveCards;
+      this.profileId = configResult.profileId;
       this.theme = customResult.theme;
       this.styles = customResult.styles;
-      this.profieId = result.profileId;
 
       this.logger.info("Hyperswitch initialized successfully", {
-        secretKey: result.secretKey,
-        environment: result.environment,
-        proxyResult: proxyResult,
-        captureMethod: result.captureMethod,
-        setupFutureUsage: result.enableSaveCards,
-        theme: customResult.theme,
-        styles: customResult.styles,
+        ...configResult,
+        ...proxyResult,
+        ...customResult,
       });
-
     } catch (e) {
-      this.logger.error(
-        "Error in initializing Hyperswitch",
-        e,
-        "HYPERSWITCH_INIT_ERROR"
-      );
+      this.logger.error("Error in initializing Hyperswitch", e, "HYPERSWITCH_INIT_ERROR");
       throw new MedusaError(
         MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
         "Error in initializing Hyperswitch",
@@ -74,35 +70,33 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
     }
   }
 
-  /*Method to create payment session for Hyperswitch */
   async initiatePayment(
     context: CreatePaymentProviderSession
   ): Promise<PaymentProviderError | PaymentProviderSessionResponse> {
-    await this.init();
+    await this.initializeHyperswitch();
     try {
       const { amount, currency_code, context: meta } = context;
-      const { session_id } = meta;
-
-      const response = await this.hyperswitch.transactions.create({
-        amount: toHyperSwitchAmount({ amount, currency: currency_code }),
-        currency: currency_code.toUpperCase(),
-        setup_future_usage: this.setupFutureUsage
-          ? "on_session"
-          : "off_session",
-        capture_method: this.captureMethod,
-        profile_id: this.profieId,
-        metadata: { session_id },
-      });
+      const formattedData = formatPaymentData(
+        context,
+        this.setupFutureUsage,
+        this.captureMethod,
+        this.profileId,
+        toHyperSwitchAmount
+      );
+      const response = await this.hyperswitch.transactions.create(formattedData);
       return {
-        data: response.data as unknown as Record<string, unknown>,
+        data: {
+          client_secret: response.data.client_secret,
+          amount: response.data.amount,
+          currency: response.data.currency,
+          status: response.data.status,
+          payment_id: response.data.payment_id,
+          theme: this.theme,
+          styles: this.styles,
+        },
       };
     } catch (e) {
-      this.logger.error(
-        "Error in initiating payment",
-        e,
-        "HYPERSWITCH_INITIATE_PAYMENT_ERROR"
-      );
-
+      this.logger.error("Error in initiating payment", e, "HYPERSWITCH_INITIATE_PAYMENT_ERROR");
       throw new MedusaError(
         MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
         "Error in initiating payment",
@@ -111,7 +105,82 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
     }
   }
 
- 
+  async deletePayment(
+    paymentSessionData: Record<string, unknown>
+  ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
+    try {
+      const { payment_id } = paymentSessionData;
+      if (!payment_id) {
+        return {
+          status: PaymentSession.CANCELED,
+          data: {},
+        };
+      }
+      await this.initializeHyperswitch();
+      const currentStatus = await this.hyperswitch.transactions.fetch({ payment_id: payment_id as string });
+
+      if (!canCancelPayment(currentStatus.data)) {
+        this.logger.error("Payment cannot be deleted", "400", "HYPERSWITCH_DELETE_PAYMENT_ERROR");
+        throw new MedusaError(
+          MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
+          "Payment cannot be deleted",
+          "500"
+        );
+      }
+
+      await this.hyperswitch.transactions.cancel({
+        payment_id: payment_id as string,
+        cancellation_reason: "requested_by_customer",
+      });
+
+      return {
+        status: PaymentSession.CANCELED,
+        data: {},
+      };
+    } catch (e) {
+      this.logger.error("Error in deleting payment", e, "HYPERSWITCH_DELETE_PAYMENT_ERROR");
+      throw new MedusaError(
+        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
+        "Error in deleting payment",
+        "500"
+      );
+    }
+  }
+
+  async authorizePayment(
+    paymentSessionData: Record<string, unknown>,
+    context: Record<string, unknown>
+  ): Promise<
+    | PaymentProviderError
+    | {
+        status: PaymentSessionStatus;
+        data: PaymentProviderSessionResponse["data"];
+      }
+  > {
+    const status = await this.getPaymentStatus(paymentSessionData);
+    return {
+      status,
+      data: {
+        ...paymentSessionData,
+      },
+    };
+  }
+
+ async getPaymentStatus(paymentSessionData: Record<string, unknown>): Promise<PaymentSessionStatus> {
+    try {
+      const { payment_id } = paymentSessionData;
+      await this.initializeHyperswitch();
+      const { data } = await this.hyperswitch.transactions.fetch({ payment_id: payment_id as string });
+      return mapProcessorStatusToPaymentStatus(data.status as any);
+    } catch (e) {
+      this.logger.error("Error in getting payment status", e, "HYPERSWITCH_GET_PAYMENT_STATUS_ERROR");
+      throw new MedusaError(
+        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
+        "Error in getting payment status",
+        "500"
+      );
+    }
+  }
 }
 
 export default HyperswitchPaymentProvider;

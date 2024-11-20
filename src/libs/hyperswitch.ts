@@ -25,14 +25,12 @@ class HyperSwitchTransactions {
   public async create(
     params: TransactionCreateParams
   ): Promise<HyperSwitchResponse<TransactionResponse>> {
-    console.log("params", params);
-    const result= this.apiClient.request<TransactionResponse>({
+    return await  this.apiClient.request<TransactionResponse>({
       path: "/payments",
       method: "POST",
       body: params,
     });
-    console.log("result",result);
-    return result;
+
   }
 
   public async update(
@@ -66,17 +64,18 @@ class HyperSwitchTransactions {
     });
   }
 
-  public async authorize(
-    params: TransactionAuthorizeParams
-  ): Promise<HyperSwitchResponse<TransactionResponse>> {
-    return this.apiClient.request<TransactionResponse>({
-      path: `/payments/${params.payment_id}/confirm`,
-      method: "POST",
-      body: {
-        payment_method: params.payment_method,
-      },
-    });
-  }
+  // public async authorize(
+  //   params: TransactionAuthorizeParams
+  // ): Promise<HyperSwitchResponse<TransactionResponse>> {
+  //   console.log("Authorize Payment", params.client_secret);
+  //   return this.apiClient.request<TransactionResponse>({
+  //     path: `/payments/${params.payment_id}/complete_authorize`,
+  //     method: "POST",
+  //     body: {
+  //       client_secret:params.client_secret,
+  //     },
+  //   });
+  // }
 
   public async cancel(
     params: TransactionCancelParams
