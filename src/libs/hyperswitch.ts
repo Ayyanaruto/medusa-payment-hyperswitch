@@ -8,12 +8,11 @@ import {
   TransactionResponse,
   TransactionUpdateParams,
   TransactionAuthorizeParams
-} from "../types/libs-types";
+} from "@/src/types/libs-types";
 
-import { ProxyType } from "src/types/models-types";
 
-import { HyperSwitchApiClient } from "./configs/hyperswitchApiClient";
-import { ProxyTypes } from "src/types/components-types";
+import { HyperSwitchApiClient } from "@/src/libs/configs/hyperswitchApiClient";
+import { ProxyTypes } from "@/src/types/components-types";
 
 class HyperSwitchTransactions {
   private readonly apiClient: HyperSwitchApiClient;
@@ -59,7 +58,7 @@ class HyperSwitchTransactions {
       path: `/payments/${params.payment_id}/capture`,
       method: "POST",
       body: {
-        cancellation_reason: "requested_by_customer",
+        amount_to_capture: params.amount_to_capture,
       },
     });
   }
@@ -97,6 +96,8 @@ class HyperSwitchTransactions {
       method: "POST",
       body: {
         payment_id: params.payment_id,
+        amount: params.amount,
+        reason: params.reason,
       },
     });
   }

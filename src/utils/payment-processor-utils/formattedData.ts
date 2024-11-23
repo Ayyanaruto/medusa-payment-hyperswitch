@@ -1,5 +1,5 @@
 import { BigNumberInput } from "@medusajs/framework/types";
-import { TransactionCreateParams ,Address} from "../../types/libs-types";
+import { TransactionCreateParams ,Address} from "@/src/types/libs-types";
 interface ConAddress {
   first_name?: string;
   last_name?: string;
@@ -68,12 +68,13 @@ export const formatPaymentData = (
     meta?.customer?.first_name && meta?.customer?.last_name
       ? `${meta.customer.last_name} ${meta.customer.first_name}`
       : `${meta.shipping_address?.first_name} ${meta.shipping_address?.last_name}`;
-
+console.log("captureMethod",captureMethod);
   return {
     amount: toHyperSwitchAmount({ amount: Number(amount), currency: currency_code }),
     currency: currency_code.toUpperCase(),
     setup_future_usage: setupFutureUsage ? "on_session" : "off_session",
     capture_method: captureMethod as ("manual" | "automatic"),
+    description: "Payment for order",
     profile_id: profileId,
     billing: {
       address: formatAddress(meta?.billing_address),

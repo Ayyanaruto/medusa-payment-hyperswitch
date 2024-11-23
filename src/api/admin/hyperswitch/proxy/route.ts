@@ -1,10 +1,10 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
 import { MedusaError } from "@medusajs/framework/utils";
 
-import { handleApiLogs } from "../../../../utils/logger";
-import { ProxyType } from "../../../../types/models-types";
-import { PROXY_MODULE } from "../../../../modules/proxy";
-import  ProxyService  from "../../../../modules/proxy/service";
+import { handleApiLogs } from "@/src//utils/logger";
+import { ProxyType } from "@/src//types/models-types";
+import { PROXY_MODULE } from "@/src//modules/proxy";
+import  ProxyService  from "@/src//modules/proxy/service";
 
 export const GET = async (
   req: MedusaRequest,

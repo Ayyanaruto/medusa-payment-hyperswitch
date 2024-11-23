@@ -1,6 +1,6 @@
 
-import { Logger } from "./logger";
-import { LogApiEntry } from "src/types/utils-types";
+import { Logger } from "@/src/utils/logger/logger";
+import { LogApiEntry } from "@/src/types/utils-types";
 
 /**
  * Handles API logs by logging them at different levels based on the status code.

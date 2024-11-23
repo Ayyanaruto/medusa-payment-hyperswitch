@@ -4,9 +4,9 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk";
-import { CONFIG_MODULE } from "../modules/configurations";
-import ConfigurationService from "../modules/configurations/service";
-import { ConfigurationType } from "src/types/models-types";
+import { CONFIG_MODULE } from "@/src/modules/configurations";
+import ConfigurationService from "@/src/modules/configurations/service";
+import { ConfigurationType } from "@/src/types/models-types";
 
 
 const step1 = createStep("step-1", async (_, { container }): Promise<StepResponse<ConfigurationType>> => {

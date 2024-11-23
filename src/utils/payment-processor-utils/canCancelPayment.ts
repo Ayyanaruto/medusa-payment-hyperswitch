@@ -1,4 +1,4 @@
-import { ProcessorStatus } from "../../types/payment-processor-types";
+import { ProcessorStatus } from "@/src/types/payment-processor-types";
 
 /**
  * Determines if a payment can be canceled based on its status.

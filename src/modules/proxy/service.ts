@@ -2,8 +2,8 @@ import { MedusaService } from "@medusajs/framework/utils";
 import Proxy from "./models/proxy";
 import {MedusaError} from "@medusajs/framework/utils";
 
-import { ProxyType } from "../../types/models-types";
-import { Logger } from "../../utils";
+import { ProxyType } from "@/src/types/models-types";
+import { Logger } from "@/src/utils";
 
 type Proxy = ProxyType;
 const logger = new Logger();

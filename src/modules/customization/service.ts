@@ -1,8 +1,8 @@
 import { MedusaService } from "@medusajs/framework/utils";
 import { MedusaError } from "@medusajs/framework/utils";
-import { CustomizationType } from "../../types/models-types";
-import Customization from "./models/customization";
-import { Logger } from "../../utils";
+import { CustomizationType } from "@/src/types/models-types";
+import Customization from "@/src/modules/customization/models/customization";
+import { Logger } from "@/src/utils";
 
 type Customization = CustomizationType;
 const logger = new Logger();

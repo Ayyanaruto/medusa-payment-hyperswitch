@@ -1,9 +1,9 @@
 import { MedusaService } from "@medusajs/framework/utils";
 import {MedusaError} from "@medusajs/framework/utils";
 
-import { ConfigurationType } from "../../types/models-types";
-import Configuration from "./models/configuration";
-import { encryptSecretKey,decryptSecretKey,Logger } from "../../utils";
+import { ConfigurationType } from "@/src/types/models-types";
+import Configuration from "@/src/modules/configurations/models/configuration";
+import { encryptSecretKey,decryptSecretKey,Logger } from "@/src/utils";
 
 type Configuration = ConfigurationType;
 const logger = new Logger();

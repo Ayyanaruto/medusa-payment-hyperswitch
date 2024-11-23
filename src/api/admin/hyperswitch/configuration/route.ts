@@ -1,10 +1,10 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
 import { MedusaError } from "@medusajs/framework/utils";
 
-import { handleApiLogs } from "../../../../utils/logger";
-import { CONFIG_MODULE } from "../../../../modules/configurations";
-import ConfigurationsService from "../../../../modules/configurations/service";
-import { ConfigurationType } from "../../../../types/models-types";
+import { handleApiLogs } from "@/src/utils/logger";
+import { CONFIG_MODULE } from "@/src/modules/configurations";
+import ConfigurationsService from "@/src/modules/configurations/service";
+import { ConfigurationType } from "@/src/types/models-types";
 
 
 

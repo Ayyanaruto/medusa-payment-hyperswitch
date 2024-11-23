@@ -1,10 +1,10 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
 import { MedusaError } from "@medusajs/framework/utils";
 
-import { handleApiLogs } from "../../../../utils/logger";
-import { CUSTOMIZATION_MODULE } from "../../../../modules/customization";
-import CustomizationService from "../../../../modules/customization/service";
-import { CustomizationType } from "../../../../types/models-types";
+import { handleApiLogs } from "@/src/utils/logger";
+import { CUSTOMIZATION_MODULE } from "@/src/modules/customization";
+import CustomizationService from "@/src/modules/customization/service";
+import { CustomizationType } from "@/src/types/models-types";
 
 export const GET = async (
   req: MedusaRequest,

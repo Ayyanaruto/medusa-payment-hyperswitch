@@ -46,8 +46,10 @@ export interface TransactionCreateParams {
   amount: BigNumberInput;
   currency: string;
   capture_method: "manual" | "automatic";
+  confirm?: boolean;
   profile_id: string;
   setup_future_usage?: string;
+  description?: string;
   billing: {
     address: Address
   };
@@ -92,7 +94,8 @@ export interface TransactionCancelParams {
 
 export interface TransactionRefundParams {
   payment_id: string;
-  amount_to_refund?: number;
+  amount: number;
+  reason?: string;
 }
 
 export interface TransactionAuthorizeParams {

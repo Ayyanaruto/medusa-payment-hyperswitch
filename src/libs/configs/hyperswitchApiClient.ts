@@ -1,9 +1,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import axiosRetry from "axios-retry";
-import { handleApiLogs } from "src/utils/logger";
-import { Logger } from "../../utils";
-import { RequestOptions, HyperSwitchResponse } from "../../types/libs-types";
-import { ProxyTypes } from "../../types/components-types";
+import { handleApiLogs } from "@/src/utils/logger";
+import { Logger } from "@/src/utils";
+import { RequestOptions, HyperSwitchResponse } from "@/src/types/libs-types";
+import { ProxyTypes } from "@/src/types/components-types";
 import { HttpsProxyAgent } from "https-proxy-agent";
 
 export class HyperSwitchApiClient {

@@ -1,2 +1,2 @@
-import { handleApiLogs } from "./handleApiLogs";
+import { handleApiLogs } from "@/src/utils/logger/handleApiLogs";
 export { handleApiLogs };
