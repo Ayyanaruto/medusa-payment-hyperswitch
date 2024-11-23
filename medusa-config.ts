@@ -31,7 +31,7 @@ module.exports = defineConfig({
             id: "hyperswitch",
             resolve: "./src/modules/hyperswitch",
           }
-        ]
+        ],
       },
     },
   ],
