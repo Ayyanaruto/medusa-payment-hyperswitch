@@ -1,4 +1,9 @@
-import { HyperswitchIconProps } from '../../types';
+
+
+interface HyperswitchIconProps {
+  width?: string;
+  height?: string;
+}
 
 const HyperswitchColoredIcon: React.FC<HyperswitchIconProps> = ({
   width = '15',

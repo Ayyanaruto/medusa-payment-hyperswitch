@@ -11,8 +11,7 @@ export const validateWebhook = async (
 ) => {
   try {
     logger.debug(
-      `Payment response hash key: ${paymentResponseHashKey}`,
-      "WEBHOOK VALIDATOR"
+      `Payment response hash key:`,{paymentResponseHashKey},"WEBHOOK VALIDATOR"
     );
 
     if (!paymentResponseHashKey) {
@@ -29,7 +28,9 @@ export const validateWebhook = async (
     const signature = headers["x-webhook-signature-512"];
 
     if (!signature) {
-      logger.error("Missing signature in request", "WEBHOOK VALIDATOR");
+      logger.error("Missing signature in request",{
+        headers
+      }, "WEBHOOK VALIDATOR");
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Missing signature in request",
@@ -44,7 +45,7 @@ export const validateWebhook = async (
       .digest("hex");
 
     if (hash !== signature) {
-      logger.error("Invalid signature", "WEBHOOK VALIDATOR");
+      logger.error("Invalid signature",{hash,signature},"WEBHOOK VALIDATOR");
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Invalid signature",
@@ -53,8 +54,7 @@ export const validateWebhook = async (
     }
 
     logger.debug(
-      "Webhook signature validated successfully",
-      "WEBHOOK VALIDATOR"
+      "Webhook signature validated successfully",{hash,signature},"WEBHOOK VALIDATOR"
     );
 
     return true;

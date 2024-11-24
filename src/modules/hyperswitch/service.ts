@@ -10,6 +10,7 @@ import {
   PaymentProviderError,
   PaymentProviderSessionResponse,
   PaymentSessionStatus,
+  UpdatePaymentProviderSession,
 } from "@medusajs/types";
 
 import HyperSwitch from "@/src/libs/hyperswitch";
@@ -69,7 +70,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
         ...configResult,
         ...proxyResult,
         ...customResult,
-      });
+      }, "HYPERSWITCH_INIT_SUCCESS");
     } catch (e) {
       this.logger.error(
         "Error in initializing Hyperswitch",
@@ -122,6 +123,46 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
         "500"
       );
     }
+  }
+  async updatePayment(context: UpdatePaymentProviderSession): Promise<PaymentProviderError | PaymentProviderSessionResponse> {
+    try {
+      await this.initializeHyperswitch();
+      const formattedData = formatPaymentData(
+        context as CreatePaymentProviderSession,
+        this.setupFutureUsage,
+        this.captureMethod,
+        this.profileId,
+        toHyperSwitchAmount
+      );
+      const response = await this.hyperswitch.transactions.update(
+      formattedData as any
+      );
+      return {
+        data: {
+          client_secret: response.data.client_secret,
+          amount: response.data.amount,
+          currency: response.data.currency,
+          status: response.data.status,
+          payment_id: response.data.payment_id,
+          theme: this.theme,
+          styles: this.styles,
+        },
+      };
+    } catch (e) {
+      this.logger.error(
+        "Error in updating payment",
+        e,
+        "HYPERSWITCH_UPDATE_PAYMENT_ERROR"
+      );
+      throw new MedusaError(
+        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
+        "Error in updating payment",
+        "500"
+      );
+    }
+
+
+
   }
 
   async deletePayment(
@@ -252,7 +293,58 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       );
     }
   }
-
+async cancelPayment(paymentData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
+    try {
+      const data  = await this.deletePayment(paymentData);
+      return {
+     ...data,
+      };
+    } catch (e) {
+      this.logger.error(
+        "Error in canceling payment",
+        e,
+        "HYPERSWITCH_CANCEL_PAYMENT_ERROR"
+      );
+      throw new MedusaError(
+        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
+        "Error in canceling payment",
+        "500"
+      );
+}
+}
+async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
+    try {
+      const { payment_id } = paymentSessionData;
+      if (!payment_id) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Payment ID is required to retrieve payment",
+          "400"
+        );
+      }
+      await this.initializeHyperswitch();
+      const { data } = await this.hyperswitch.transactions.fetch({
+        payment_id: payment_id as string,
+      });
+      return {
+        data: {
+          ...paymentSessionData,
+          ...data,
+        },
+      };
+    } catch (e) {
+      this.logger.error(
+        "Error in retrieving payment",
+        e,
+        "HYPERSWITCH_RETRIEVE_PAYMENT_ERROR"
+      );
+      throw new MedusaError(
+        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
+        "Error in retrieving payment",
+        "500"
+      );
+    }
+}
   async refundPayment(
     paymentData: Record<string, unknown>,
     refundAmount: number

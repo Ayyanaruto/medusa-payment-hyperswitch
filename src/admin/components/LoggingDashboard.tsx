@@ -1,7 +1,14 @@
+"use client";
 
-import  { useState, useMemo, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { useState, useMemo, useEffect } from "react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
 import {
   BarChart,
   Bar,
@@ -26,24 +33,45 @@ import {
   Info,
   Bug,
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-//@ts-ignore
-const LogLevelBadge = ({ level }) => {
+import { useLogger } from "../query-hooks";
+import { SpinnerPage } from "./re:components";
+
+interface LogEntry {
+  timestamp: string;
+  level: string;
+  message: string;
+  metadata: Record<string, any>;
+  correlationId: string;
+  source: string;
+}
+
+interface AnalyticsData {
+  totalLogs: number;
+  logsByLevel: Record<string, number>;
+  logsBySource: Record<string, number>;
+  errorRate: number;
+  averageResponseTime: number;
+  lastAnalyticsUpdate: string;
+}
+
+const LogLevelBadge = ({ level }: { level: string }) => {
   const configs = {
     INFO: { class: "bg-blue-100 text-blue-800", icon: Info },
     WARN: { class: "bg-yellow-100 text-yellow-800", icon: AlertTriangle },
     ERROR: { class: "bg-red-100 text-red-800", icon: AlertCircle },
     DEBUG: { class: "bg-green-100 text-green-800", icon: Bug },
+    ALL: { class: "bg-gray-100", icon: Filter },
   };
-  //@ts-ignore
-  const IconComponent = configs[level]?.icon;
+  const { class: badgeClass, icon: IconComponent } = configs[
+    level as keyof typeof configs
+  ] || { class: "bg-gray-100", icon: Info };
 
   return (
     <span
-      className={`px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
-        //@ts-ignore
-        configs[level]?.class || "bg-gray-100"
-      }`}
+      className={`px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${badgeClass}`}
     >
       {IconComponent && <IconComponent size={12} />}
       {level}
@@ -51,19 +79,14 @@ const LogLevelBadge = ({ level }) => {
   );
 };
 
-interface LogDetailsModalProps {
-  log: {
-    timestamp: string;
-    level: string;
-    message: string;
-    metadata?: Record<string, any>;
-  };
+const LogDetailsModal = ({
+  log,
+  onClose,
+}: {
+  log: LogEntry;
   onClose: () => void;
-}
-
-const LogDetailsModal = ({ log, onClose }: LogDetailsModalProps) => {
-  // Add syntax highlighting for JSON
-  const formatJSON = (obj: Record<string, any> | ArrayLike<unknown>) => {
+}) => {
+  const formatJSON = (obj: Record<string, any>) => {
     return Object.entries(obj).map(([key, value]) => (
       <div key={key} className="flex gap-2">
         <span className="text-purple-600">{`"${key}":`}</span>
@@ -100,6 +123,14 @@ const LogDetailsModal = ({ log, onClose }: LogDetailsModalProps) => {
               <h3 className="font-semibold mb-2">Message</h3>
               <p>{log.message}</p>
             </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-semibold mb-2">Source</h3>
+              <p>{log.source}</p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-semibold mb-2">Correlation ID</h3>
+              <p>{log.correlationId}</p>
+            </div>
             {log.metadata && (
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="font-semibold mb-2">Metadata</h3>
@@ -115,64 +146,83 @@ const LogDetailsModal = ({ log, onClose }: LogDetailsModalProps) => {
   );
 };
 
+const parseLogs = (logs: any[]) => {
+  return logs
+    .map((log) => {
+      try {
+        const timestampEnd = log.indexOf("]");
+        const timestamp = log.substring(1, timestampEnd);
+        const rest = log.substring(timestampEnd + 2);
+        const levelEndIndex = rest.indexOf(" ");
+        const level = rest.substring(0, levelEndIndex);
+        const jsonString = rest.substring(levelEndIndex + 1);
+        const parsedJson = JSON.parse(jsonString);
+        const { message, metadata, correlationId, source } = parsedJson;
+
+        return {
+          timestamp,
+          level,
+          message,
+          metadata,
+          correlationId,
+          source,
+        };
+      } catch (error) {
+        console.error("Error parsing log:", error);
+        return null;
+      }
+    })
+    .filter(Boolean);
+};
+
 const LoggingDashboard = () => {
+  const { data, isSuccess, isLoading } = useLogger();
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(
+    null
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
-  const [selectedSource, setSelectedSource] = useState(null);
-  const [selectedLog, setSelectedLog] = useState<LogDetailsModalProps["log"] | null>(null);
+  const [selectedSource, setSelectedSource] = useState<string | null>(null);
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [sortConfig, setSortConfig] = useState({
     key: "timestamp",
     direction: "desc",
   });
-  const [timeRange, setTimeRange] = useState("1h"); // '1h', '24h', '7d'
+  const [timeRange, setTimeRange] = useState("1h");
   const [isLive, setIsLive] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [logsPerPage] = useState(15);
 
-  const logs = [
-    {
-      timestamp: "2024-11-09T10:18:08.525Z",
-      level: "WARN",
-      message: "No proxy found, returning default settings.",
-      metadata: { host: "", port: 8080, username: "", password: "", url: "" },
-      source: "PROXY REPOSITORY",
-    },
-    {
-      timestamp: "2024-11-09T10:18:08.526Z",
-      level: "INFO",
-      message: "Proxy extracted in GET",
-      metadata: {
-        requestType: "GET",
-        endpoint: "/admin/hyperswitch/proxy",
-        browser: "Mozilla/5.0",
-        userAgent:
-          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
-        statusCode: 200,
-        clientIp: "::1",
-        responseTime: "2ms",
-      },
-      source: "PROXY SETTINGS",
-    },
-  ];
+  useEffect(() => {
+    if (isSuccess && data) {
+      const analyticsLog = JSON.parse(data.logs[0].split("] ANALYTICS ")[1]);
+      setAnalyticsData(analyticsLog);
+      const parsedLogs = parseLogs(data.logs);
+      setLogs(parsedLogs.filter((log): log is LogEntry => log !== null));
+    }
+  }, [isSuccess, data]);
 
-  const analyticsData = {
-    totalLogs: 108,
-    logsByLevel: { WARN: 18, INFO: 79, ERROR: 5, DEBUG: 6 },
-    logsBySource: { "PROXY REPOSITORY": 19, "PROXY SETTINGS": 11 },
-    errorRate: 4.62962962962963,
-    lastAnalyticsUpdate: "2024-11-09T10:45:29.124Z",
-  };
+  const logLevelData = useMemo(() => {
+    return analyticsData
+      ? Object.entries(analyticsData.logsByLevel).map(([name, value]) => ({
+          name,
+          value,
+        }))
+      : [];
+  }, [analyticsData]);
 
-  // Prepare chart data
-  const logLevelData = Object.entries(analyticsData.logsByLevel).map(
-    ([name, value]) => ({ name, value })
-  );
   const COLORS = ["#3B82F6", "#FBBF24", "#EF4444", "#10B981"];
 
-  const logSourceData = Object.entries(analyticsData.logsBySource)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 10);
+  const logSourceData = useMemo(() => {
+    return analyticsData
+      ? Object.entries(analyticsData.logsBySource)
+          .map(([name, value]) => ({ name, value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 10)
+      : [];
+  }, [analyticsData]);
 
-  // Time series data for log volume
   const timeSeriesData = useMemo(() => {
     return Array.from({ length: 24 }, (_, i) => ({
       time: `${i}:00`,
@@ -184,11 +234,14 @@ const LoggingDashboard = () => {
     return logs
       .filter((log) => {
         const matchesSearch = searchTerm
-          ? log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log.source.toLowerCase().includes(searchTerm.toLowerCase())
+          ? log?.message?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            log?.source?.toLowerCase().includes(searchTerm.toLowerCase())
           : true;
 
         const matchesLevel = selectedLevel ? log.level === selectedLevel : true;
+        console.log(selectedLevel);
+        console.log(log.level);
+
         const matchesSource = selectedSource
           ? log.source === selectedSource
           : true;
@@ -205,17 +258,28 @@ const LoggingDashboard = () => {
       });
   }, [logs, searchTerm, selectedLevel, selectedSource, sortConfig]);
 
-  // Live updates simulation
   useEffect(() => {
     if (isLive) {
       const interval = setInterval(() => {
-        // Simulate new log entries
-        // This is where you would typically fetch new logs from an API
         console.log("Fetching new logs...");
       }, 5000);
       return () => clearInterval(interval);
     }
   }, [isLive]);
+
+  const indexOfLastLog = currentPage * logsPerPage;
+  console.log(indexOfLastLog);
+  const indexOfFirstLog = indexOfLastLog - logsPerPage;
+  console.log(indexOfFirstLog);
+  const currentLogs = filteredLogs.slice(indexOfFirstLog, indexOfLastLog);
+  console.log(currentLogs);
+  const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  if (isLoading) {
+    return <SpinnerPage />;
+  }
 
   return (
     <div className="space-y-6">
@@ -248,43 +312,43 @@ const LoggingDashboard = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Analytics Overview */}
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="text-sm font-semibold text-blue-800 mb-2">
-                Total Logs
-              </h3>
-              <p className="text-2xl font-bold text-blue-900">
-                {analyticsData.totalLogs}
-              </p>
+          {analyticsData && (
+            <div className="grid grid-cols-4 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="text-sm font-semibold text-blue-800 mb-2">
+                  Total Logs
+                </h3>
+                <p className="text-2xl font-bold text-blue-900">
+                  {analyticsData.totalLogs}
+                </p>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg">
+                <h3 className="text-sm font-semibold text-red-800 mb-2">
+                  Error Rate
+                </h3>
+                <p className="text-2xl font-bold text-red-900">
+                  {analyticsData.errorRate.toFixed(2)}%
+                </p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <h3 className="text-sm font-semibold text-yellow-800 mb-2">
+                  Warnings
+                </h3>
+                <p className="text-2xl font-bold text-yellow-900">
+                  {analyticsData.logsByLevel.WARN || 0}
+                </p>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="text-sm font-semibold text-green-800 mb-2">
+                  Avg Response Time
+                </h3>
+                <p className="text-2xl font-bold text-green-900">
+                  {analyticsData.averageResponseTime.toFixed(2)}ms
+                </p>
+              </div>
             </div>
-            <div className="bg-red-50 p-4 rounded-lg">
-              <h3 className="text-sm font-semibold text-red-800 mb-2">
-                Error Rate
-              </h3>
-              <p className="text-2xl font-bold text-red-900">
-                {analyticsData.errorRate.toFixed(2)}%
-              </p>
-            </div>
-            <div className="bg-yellow-50 p-4 rounded-lg">
-              <h3 className="text-sm font-semibold text-yellow-800 mb-2">
-                Warnings
-              </h3>
-              <p className="text-2xl font-bold text-yellow-900">
-                {analyticsData.logsByLevel.WARN || 0}
-              </p>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h3 className="text-sm font-semibold text-green-800 mb-2">
-                Success Rate
-              </h3>
-              <p className="text-2xl font-bold text-green-900">
-                {(100 - analyticsData.errorRate).toFixed(2)}%
-              </p>
-            </div>
-          </div>
+          )}
 
-          {/* Charts */}
           <div className="grid grid-cols-3 gap-4">
             <Card className="col-span-1">
               <CardHeader>
@@ -352,47 +416,61 @@ const LoggingDashboard = () => {
             </Card>
           </div>
 
-          {/* Log Viewer */}
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Log Entries</CardTitle>
                 <div className="flex space-x-2">
-                  {Object.entries(analyticsData.logsByLevel).map(
-                    ([level, count]) => (
-                      <button
-                        key={level}
-                        onClick={() =>
-                          setSelectedLevel(
-                            selectedLevel === level ? null : level
-                          )
-                        }
-                        className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm ${
-                          selectedLevel === level
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-200"
-                        }`}
-                      >
-                        <LogLevelBadge level={level} />
-                        <span>{count}</span>
-                      </button>
-                    )
-                  )}
+                  {analyticsData &&
+                    Object.entries(analyticsData.logsByLevel).map(
+                      ([level, count]) => (
+                        <button
+                          key={level}
+                          onClick={() =>
+                            setSelectedLevel(
+                              selectedLevel === level ? null : level
+                            )
+                          }
+                          className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm ${
+                            selectedLevel === level
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-200"
+                          }`}
+                        >
+                          <LogLevelBadge level={level} />
+                          <span>{count}</span>
+                        </button>
+                      )
+                    )}
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="mb-4">
-                <Input
-                  placeholder="Search logs by message or source..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-                <Search
-                  className="absolute -mt-8 ml-3 text-gray-400"
-                  size={20}
-                />
+              <div className="mb-4 flex items-center space-x-2">
+                <div className="relative flex-grow">
+                  <Input
+                    placeholder="Search logs by message or source..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="pl-10"
+                  />
+                  <Search
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    size={20}
+                  />
+                </div>
+                <Button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setCurrentPage(1);
+                  }}
+                  variant="outline"
+                >
+                  Clear
+                </Button>
               </div>
 
               <div className="border rounded-lg overflow-hidden">
@@ -408,8 +486,7 @@ const LoggingDashboard = () => {
                                 prev.direction === "asc" ? "desc" : "asc",
                             }))
                           }
-                          className="flex items-center space-x-
-1"
+                          className="flex items-center space-x-1"
                         >
                           Timestamp
                           {sortConfig.direction === "asc" ? (
@@ -425,7 +502,7 @@ const LoggingDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredLogs.map((log, index) => (
+                    {currentLogs.map((log, index) => (
                       <tr
                         key={index}
                         className="border-t hover:bg-gray-50 cursor-pointer"
@@ -443,6 +520,41 @@ const LoggingDashboard = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="mt-4 flex justify-between items-center">
+                <div>
+                  Showing {indexOfFirstLog + 1} to{" "}
+                  {Math.min(indexOfLastLog, filteredLogs.length)} of{" "}
+                  {filteredLogs.length} entries
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => paginate(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    variant="outline"
+                  >
+                    <ChevronLeft size={16} />
+                  </Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (number) => (
+                      <Button
+                        key={number}
+                        onClick={() => paginate(number)}
+                        variant={currentPage === number ? "default" : "outline"}
+                      >
+                        {number}
+                      </Button>
+                    )
+                  )}
+                  <Button
+                    onClick={() => paginate(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    variant="outline"
+                  >
+                    <ChevronRight size={16} />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
