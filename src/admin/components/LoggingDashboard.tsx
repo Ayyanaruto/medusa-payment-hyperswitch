@@ -35,6 +35,7 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from "lucide-react";
 import { useLogger } from "../query-hooks";
 import { SpinnerPage } from "./re:components";
@@ -193,6 +194,9 @@ const LoggingDashboard = () => {
   const [isLive, setIsLive] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [logsPerPage] = useState(15);
+  const [selectedCorrelationId, setSelectedCorrelationId] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (isSuccess && data) {
@@ -212,7 +216,7 @@ const LoggingDashboard = () => {
       : [];
   }, [analyticsData]);
 
-  const COLORS = ["#3B82F6", "#FBBF24", "#EF4444", "#10B981"];
+  const COLORS = ["#3B82F6", "#FBBF24", "#EF4444", "#10B981", "#8B5CF6"];
 
   const logSourceData = useMemo(() => {
     return analyticsData
@@ -224,29 +228,47 @@ const LoggingDashboard = () => {
   }, [analyticsData]);
 
   const timeSeriesData = useMemo(() => {
-    return Array.from({ length: 24 }, (_, i) => ({
-      time: `${i}:00`,
-      volume: Math.floor(Math.random() * 50),
+    const timeMap: Record<string, number> = {};
+
+    logs.forEach((log) => {
+      const date = new Date(log.timestamp);
+      const hour = date.getHours();
+      const timeKey = `${hour}:00`;
+
+      if (!timeMap[timeKey]) {
+        timeMap[timeKey] = 0;
+      }
+      timeMap[timeKey]++;
+    });
+
+    return Object.entries(timeMap).map(([time, volume]) => ({
+      time,
+      volume,
     }));
-  }, []);
+  }, [logs]);
 
   const filteredLogs = useMemo(() => {
     return logs
       .filter((log) => {
         const matchesSearch = searchTerm
           ? log?.message?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log?.source?.toLowerCase().includes(searchTerm.toLowerCase())
+            log?.source?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            log?.correlationId?.toLowerCase().includes(searchTerm.toLowerCase())
           : true;
 
         const matchesLevel = selectedLevel ? log.level === selectedLevel : true;
-        console.log(selectedLevel);
-        console.log(log.level);
 
         const matchesSource = selectedSource
           ? log.source === selectedSource
           : true;
 
-        return matchesSearch && matchesLevel && matchesSource;
+        const matchesCorrelationId = selectedCorrelationId
+          ? log.correlationId === selectedCorrelationId
+          : true;
+
+        return (
+          matchesSearch && matchesLevel && matchesSource && matchesCorrelationId
+        );
       })
       .sort((a, b) => {
         if (sortConfig.key === "timestamp") {
@@ -254,9 +276,19 @@ const LoggingDashboard = () => {
             ? new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
             : new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
         }
+        // Prioritize ERROR log level
+        if (a.level === "ERROR" && b.level !== "ERROR") return -1;
+        if (b.level === "ERROR" && a.level !== "ERROR") return 1;
         return 0;
       });
-  }, [logs, searchTerm, selectedLevel, selectedSource, sortConfig]);
+  }, [
+    logs,
+    searchTerm,
+    selectedLevel,
+    selectedSource,
+    selectedCorrelationId,
+    sortConfig,
+  ]);
 
   useEffect(() => {
     if (isLive) {
@@ -268,14 +300,33 @@ const LoggingDashboard = () => {
   }, [isLive]);
 
   const indexOfLastLog = currentPage * logsPerPage;
-  console.log(indexOfLastLog);
   const indexOfFirstLog = indexOfLastLog - logsPerPage;
-  console.log(indexOfFirstLog);
   const currentLogs = filteredLogs.slice(indexOfFirstLog, indexOfLastLog);
-  console.log(currentLogs);
   const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const exportLogs = () => {
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      "Timestamp,Level,Source,Message,CorrelationId\n" +
+      filteredLogs
+        .map(
+          (log) =>
+            `"${log.timestamp}","${log.level}","${
+              log.source
+            }","${log.message.replace(/"/g, '""')}","${log.correlationId}"`
+        )
+        .join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "logs_export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (isLoading) {
     return <SpinnerPage />;
@@ -308,6 +359,10 @@ const LoggingDashboard = () => {
               >
                 {isLive ? "🔴 Live" : "⭘ Paused"}
               </button>
+              <Button onClick={exportLogs} variant="outline">
+                <Download size={16} className="mr-2" />
+                Export Logs
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -369,12 +424,24 @@ const LoggingDashboard = () => {
                         `${name} ${(percent * 100).toFixed(0)}%`
                       }
                     >
-                      {logLevelData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
+                      {logLevelData.map((entry, index) => {
+                        const colorMap: Record<string, string> = {
+                          INFO: "#3B82F6",
+                          WARN: "#FBBF24",
+                          ERROR: "#EF4444",
+                          DEBUG: "#10B981",
+                          ALL: "#8B5CF6",
+                        };
+                        return (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              colorMap[entry.name] ||
+                              COLORS[index % COLORS.length]
+                            }
+                          />
+                        );
+                      })}
                     </Pie>
                     <Tooltip />
                     <Legend />
@@ -449,7 +516,7 @@ const LoggingDashboard = () => {
               <div className="mb-4 flex items-center space-x-2">
                 <div className="relative flex-grow">
                   <Input
-                    placeholder="Search logs by message or source..."
+                    placeholder="Search logs by message, source, or correlation ID..."
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
@@ -465,11 +532,14 @@ const LoggingDashboard = () => {
                 <Button
                   onClick={() => {
                     setSearchTerm("");
+                    setSelectedLevel(null);
+                    setSelectedSource(null);
+                    setSelectedCorrelationId(null);
                     setCurrentPage(1);
                   }}
                   variant="outline"
                 >
-                  Clear
+                  Clear Filters
                 </Button>
               </div>
 
@@ -499,13 +569,16 @@ const LoggingDashboard = () => {
                       <th className="p-3 text-left">Level</th>
                       <th className="p-3 text-left">Source</th>
                       <th className="p-3 text-left">Message</th>
+                      <th className="p-3 text-left">Correlation ID</th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentLogs.map((log, index) => (
                       <tr
                         key={index}
-                        className="border-t hover:bg-gray-50 cursor-pointer"
+                        className={`border-t hover:bg-gray-50 cursor-pointer ${
+                          log.level === "ERROR" ? "bg-red-50" : ""
+                        }`}
                         onClick={() => setSelectedLog(log)}
                       >
                         <td className="p-3">
@@ -516,6 +589,27 @@ const LoggingDashboard = () => {
                         </td>
                         <td className="p-3">{log.source}</td>
                         <td className="p-3 truncate max-w-xs">{log.message}</td>
+                        <td className="p-3">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCorrelationId(
+                                selectedCorrelationId === log.correlationId
+                                  ? null
+                                  : log.correlationId
+                              );
+                            }}
+                            className={`px-2 py-1 rounded-md text-xs ${
+                              selectedCorrelationId === log.correlationId
+                                ? "bg-blue-500 text-white"
+                                : "bg-gray-200"
+                            }`}
+                          >
+                            {log.correlationId
+                              ? `${log.correlationId.slice(0, 8)}...`
+                              : "N/A"}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

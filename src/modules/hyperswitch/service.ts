@@ -258,6 +258,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       const amount = paymentData.amount as number;
       await this.initializeHyperswitch();
       const currentStatus = await this.getPaymentStatus(paymentData);
+      console.log(currentStatus);
       if (currentStatus !== PaymentSession.CAPTURED) {
         const { data } = await this.hyperswitch.transactions.capture({
           payment_id: payment_id as string,
@@ -296,6 +297,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
 async cancelPayment(paymentData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
     try {
       const data  = await this.deletePayment(paymentData);
+      console.log(data);
       return {
      ...data,
       };

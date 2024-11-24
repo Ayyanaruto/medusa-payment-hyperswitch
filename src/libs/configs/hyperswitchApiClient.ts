@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils";
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import axiosRetry from "axios-retry";
 import { handleApiLogs } from "@/src/utils/logger";
@@ -38,11 +39,7 @@ export class HyperSwitchApiClient {
       },
     };
 
-    if (
-      proxy?.isActive &&
-      proxy?.host &&
-      proxy?.port
-    ) {
+    if (proxy?.isActive && proxy?.host && proxy?.port) {
       this.configureProxy(axiosConfig, proxy);
     }
 
@@ -137,12 +134,18 @@ export class HyperSwitchApiClient {
         headers: error.response?.headers,
         error: error,
       });
-      throw new Error(
-        `Error from HyperSwitch with status code ${
-          error.response?.status
-        }: ${JSON.stringify(error.response?.data)}`
+      throw new MedusaError (
+        MedusaError.Types.NOT_ALLOWED,
+        "Error from HyperSwitch API",
+        error.response?.status?.toString(),
+       JSON.stringify( error.response?.data)
       );
     }
-    throw new Error(`Error from HyperSwitch API: ${(error as Error).message}`);
+throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "Error from HyperSwitch API",
+      "500",
+      "Internal Server Error"
+    );
   }
 }
