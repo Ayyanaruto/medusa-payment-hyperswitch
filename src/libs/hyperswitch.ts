@@ -27,7 +27,7 @@ class HyperSwitchTransactions {
     return await  this.apiClient.request<TransactionResponse>({
       path: "/payments",
       method: "POST",
-      body: {}
+      body: params,
     });
 
   }
