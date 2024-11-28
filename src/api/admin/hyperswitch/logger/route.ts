@@ -60,8 +60,7 @@ export const GET = async (
   req: MedusaRequest,
   res: MedusaResponse
 ): Promise<void> => {
-  ensureLogFilesExist(LOG_FILES);
-
+ensureLogFilesExistWithInitialLogs(LOG_FILES);
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 200;
 
@@ -82,3 +81,17 @@ export const GET = async (
     res.status(500).json({ error: "Failed to read logs" });
   }
 };
+const initialLogs = {
+  "application.log": `[${new Date().toISOString()}] DEBUG {"level":"DEBUG","message":"System initialization complete","metadata":{"bootTime":"${Date.now()}ms","status":"ready"},"timestamp":"${new Date().toISOString()}"}\n`,
+  "analytics.log": `[${new Date().toISOString()}] ANALYTICS {"totalLogs":1,"logsByLevel":{"DEBUG":1},"logsBySource":{"SYSTEM_INIT":1},"errorRate":0,"averageResponseTime":0.5,"lastAnalyticsUpdate":"${new Date().toISOString()}"}\n`
+};
+
+const ensureLogFilesExistWithInitialLogs = (logFiles: readonly string[]): void => {
+  logFiles.forEach((file) => {
+    if (!fs.existsSync(file)) {
+      fs.writeFileSync(file, initialLogs[path.basename(file)]);
+    }
+  });
+};
+
+ensureLogFilesExistWithInitialLogs(LOG_FILES);

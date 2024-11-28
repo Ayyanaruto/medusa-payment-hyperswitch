@@ -258,18 +258,15 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       const amount = paymentData.amount as number;
       await this.initializeHyperswitch();
       const currentStatus = await this.getPaymentStatus(paymentData);
-      console.log(currentStatus);
       if (currentStatus !== PaymentSession.CAPTURED) {
         const { data } = await this.hyperswitch.transactions.capture({
           payment_id: payment_id as string,
           amount_to_capture: amount,
         });
         const filteredData = filterNull(data);
-        console.log(filteredData);
         return {
           status: PaymentSession.CAPTURED,
           data: {
-            ...paymentData,
             ...filteredData,
           },
         };
@@ -297,7 +294,6 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
 async cancelPayment(paymentData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
     try {
       const data  = await this.deletePayment(paymentData);
-      console.log(data);
       return {
      ...data,
       };
@@ -352,12 +348,14 @@ async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<Paym
     refundAmount: number
   ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
     try {
-      const { payment_id, amount, currency } = paymentData as {
+      const { payment_id, amount, currency,metadata } = paymentData.data as {
         payment_id: string;
         amount: number;
         currency: string;
+        metadata: {
+          session_id: string;
+        }
       };
-
       const refAmount = toHyperSwitchAmount({
         //@ts-ignore
         amount: refundAmount.value,
@@ -376,6 +374,9 @@ async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<Paym
         reason: "requested_by_customer",
         //@ts-ignore
         amount: refAmount,
+        metadata:{
+          session_id: metadata.session_id
+        }
       });
       return {
         data: {
@@ -390,7 +391,7 @@ async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<Paym
         "HYPERSWITCH_REFUND_PAYMENT_ERROR"
       );
       throw new MedusaError(
-        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
+        MedusaError.Types.PAYMENT_REQUIRES_MORE_ERROR,
         "Error in refunding payment",
         "500"
       );
@@ -451,7 +452,7 @@ async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<Paym
         }
       ).object;
       const session_id = metadata.session_id;
-      const amountBigNumber = new BigNumber(
+   let amountBigNumber = new BigNumber(
         fromHyperSwitchAmount({ amount: amount, currency: currency })
       );
 
@@ -496,9 +497,9 @@ async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<Paym
               amount: amountBigNumber,
             },
           };
-        case "payment_cancelled":
+        case "refund_succeeded":
           this.logger.info(
-            "Payment Cancelled",
+            "Refund Succeeded",
             {
               session_id,
               amount: amountBigNumber,
@@ -506,14 +507,30 @@ async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<Paym
             "HYPERSWITCH_WEBHOOK"
           );
           return {
-            action: PaymentActions.NOT_SUPPORTED,
+            action: PaymentActions.SUCCESSFUL,
+            data: {
+              session_id,
+              amount: 0,
+            },
+          };
+        case "refund_failed":
+          this.logger.warn(
+            "Refund Failed",
+            {
+              session_id,
+              amount: amountBigNumber,
+            },
+            "HYPERSWITCH_WEBHOOK"
+          );
+          return {
+            action: PaymentActions.SUCCESSFUL,
             data: {
               session_id,
               amount: amountBigNumber,
             },
           };
         default:
-          this.logger.error(
+          this.logger.warn(
             "Webhook event not supported",
             "HYPERSWITCH_WEBHOOK_ERROR"
           );

@@ -28,7 +28,7 @@ const UnifiedCheckout: React.FC<ButtonProps> = ({
     const loadHyper = async () => {
       // @ts-ignore
       const hyperInstance = Hyper(
-        "pk_G7923fNwwYPA9cYkdAga_secret_i2A2az4IXanuC9syFFW9"
+        "pk_G7923fNwwYPA9cYkdAga_secret_i2A2az4IXanuC9syFFW3"
       );
       setHyper(hyperInstance);
 

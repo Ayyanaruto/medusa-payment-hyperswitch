@@ -96,6 +96,7 @@ export interface TransactionRefundParams {
   payment_id: string;
   amount: number;
   reason?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TransactionAuthorizeParams {
