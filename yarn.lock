@@ -521,6 +521,7 @@
     "@smithy/types" "^3.6.0"
     tslib "^2.6.2"
 
+
 "@aws-sdk/middleware-sdk-s3@3.686.0":
   version "3.686.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/middleware-sdk-s3/-/middleware-sdk-s3-3.686.0.tgz#88bf3c68a0c820f76ad7118e1b077b76721468c3"
