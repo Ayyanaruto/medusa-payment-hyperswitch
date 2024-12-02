@@ -20,7 +20,7 @@ async function checkDatabaseConnection() {
     console.log("✓ Database is responding");
 
     // Run migrations and seed the database
-    exec("npx run db:migrate && npm run seed", (error, stdout, stderr) => {
+    exec("npx medusa db:migrate && npm run seed", (error, stdout, stderr) => {
       if (error) {
         console.error(`✗ Error running migrations or seeding: ${error.message}`);
         process.exit(1);

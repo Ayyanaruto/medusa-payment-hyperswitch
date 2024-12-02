@@ -5,11 +5,13 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Function to log info
 log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    echo -e "${CYAN}[INFO]${NC} $1"
 }
 
 # Function to log success
@@ -28,10 +30,7 @@ setup_project() {
     clear
 
     # Welcome message
-    echo -e "${YELLOW}===============================================${NC}"
-    echo -e "${GREEN}✨ HyperSwitch Medusa Storefront Setup Script ✨${NC}"
-    echo -e "${YELLOW}===============================================${NC}"
-    echo -e "${BLUE}
+    echo -e "${MAGENTA}
 
    ╔═══════════════════════════════════════════════╗
    ║        Welcome to HyperSwitch + Medusa        ║
@@ -45,7 +44,7 @@ setup_project() {
     # Check required tools
     for cmd in git npm psql yarn; do
         if ! command -v $cmd &> /dev/null; then
-            log_error "❌ $cmd is not installed"
+            log_error "❌ $cmd is not installed. Please install it and try again."
             exit 1
         fi
     done
@@ -53,14 +52,14 @@ setup_project() {
     # Dependency installation
     log_info "📦 Installing project dependencies..."
     npm install --force || {
-        log_error "❌ Failed to install dependencies"
+        log_error "❌ Failed to install dependencies. Please check your npm setup."
         exit 1
     }
 
     # Additional dependencies installation
     log_info "📦 Installing additional dependencies..."
     yarn add medusa-react @tanstack/react-query@4.22 @medusajs/medusa || {
-        log_error "❌ Failed to install additional dependencies"
+        log_error "❌ Failed to install additional dependencies. Please check your yarn setup."
         exit 1
     }
 
@@ -84,15 +83,15 @@ setup_project() {
 
     # Export database configuration for check-db.js
     export DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME
-    #CREATE DATABASE
+
+    # Create Database
     log_info "🛠️ Creating Database..."
     psql -U $DB_USER -c "CREATE DATABASE $DB_NAME" || {
-        log_error "❌ Failed to create database"
+        log_error "❌ Failed to create database. Please check your PostgreSQL setup."
         exit 1
     }
 
-
-    # Create .env file if database error keep DB_NAME empty
+    # Create .env file
     log_info "📝 Creating .env file..."
     cat > .env << EOL
 STORE_CORS=http://localhost:8000,https://docs.medusajs.com
@@ -109,13 +108,13 @@ EOL
     # Clone repository
     log_info "🔄 Cloning HyperSwitch Medusa Storefront repository..."
     git clone https://github.com/Ayyanaruto/hyperswitch-medusa-storefront.git || {
-        log_error "❌ Failed to clone repository"
+        log_error "❌ Failed to clone repository. Please check your internet connection."
         exit 1
     }
 
     # Final success message
     echo -e "\n${GREEN}✨ Setup Completed Successfully! ✨${NC}"
-    log_success "🚀 Project is ready for development"
+    log_success "🚀 Project is ready for development. Happy coding!"
 }
 
 # Run the setup
