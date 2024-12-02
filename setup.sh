@@ -95,7 +95,7 @@ setup_project() {
 
     # Create Database
     log_info "🛠️ Creating Database..."
-    psql -U $DB_USER -c "CREATE DATABASE $DB_NAME" || {
+    psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "CREATE DATABASE \"$DB_NAME\"" || {
         log_error "❌ Failed to create database. Please check your PostgreSQL setup."
         exit 1
     }
