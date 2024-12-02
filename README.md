@@ -19,6 +19,7 @@ Before installation, ensure you have the following:
 ```bash
 git clone https://github.com/Ayyanaruto/medusa-payment-hyperswitch.git
 cd medusa-payment-hyperswitch
+git checkout medusa-hyperswitch@v2
 ```
 
 ### 2. Initial Setup
