@@ -60,6 +60,11 @@ NEXT_PUBLIC_HYPERSWITCH_KEY=your_hyperswitch_key
   - Generate or locate your API key
 - **Medusa Publishable Key**:
   - Refer to the below video
+  - 
+
+https://github.com/user-attachments/assets/3c7d7848-6ebf-4a0e-9ce0-e2eb0d0b1aaf
+
+
 
 ### 4. Start the Application
 
