@@ -1,61 +1,99 @@
-# Medusa Payment Hyperswitch v2
+# Medusa-Hyperswitch Payment Integration
 
-Welcome to the **Medusa Payment Hyperswitch v2** documentation! 🎉 This README is your treasure map to the project, setup instructions, and usage guidelines. Let's dive in!
+## Overview
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
+This repository provides a seamless integration between Medusa, an open-source commerce platform, and Hyperswitch, a payment orchestration platform. The integration enables flexible and robust payment processing for your e-commerce application.
 
-## Introduction
-**Medusa Payment Hyperswitch v2** is your magical wand for payment processing! 🪄 It effortlessly integrates various payment gateways into your application, making transactions smoother than butter.
+## Prerequisites
 
-## Features
-- 🛠️ Easy integration with multiple payment gateways
-- 🔒 Secure and reliable transaction processing
-- 💳 Support for various payment methods
-- 📊 Detailed transaction logging and reporting
+Before installation, ensure you have the following:
 
-## Installation
-To install **Medusa Payment Hyperswitch v2**, cast the following spell in your terminal:
+- **Node.js** (v16 or higher)
+- **npm** (v8 or higher)
+- Basic understanding of e-commerce platforms and payment integrations
+
+## Installation Guide
+
+### 1. Clone the Repository
 
 ```bash
-npm install medusa-payment-hyperswitch@v2
+git clone https://github.com/Ayyanaruto/medusa-payment-hyperswitch.git
+cd medusa-payment-hyperswitch
 ```
 
-## Usage
-Here's a spellbook entry on how to use **Medusa Payment Hyperswitch v2** in your project:
+### 2. Initial Setup
 
-```javascript
-const Hyperswitch = require('medusa-payment-hyperswitch');
+Run the setup script to install dependencies and configure the project:
 
-const hyperswitch = new Hyperswitch({
-  apiKey: 'your-api-key',
-  environment: 'sandbox', // or 'production'
-});
-
-hyperswitch.processPayment({
-  amount: 1000,
-  currency: 'USD',
-  paymentMethod: 'credit_card',
-  cardDetails: {
-    number: '4111111111111111',
-    expiryMonth: '12',
-    expiryYear: '2023',
-    cvv: '123',
-  },
-}).then(response => {
-  console.log('✨ Payment successful:', response);
-}).catch(error => {
-  console.error('💥 Payment failed:', error);
-});
+```bash
+npm run setup
 ```
 
-## Contributing
-We love contributions! ❤️ Check out our [contributing guidelines](CONTRIBUTING.md) to join the fun and help make **Medusa Payment Hyperswitch v2** even more magical.
+> **Note**: During the setup, you will be prompted to enter database credentials. Please have these ready.
 
-## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for all the legal mumbo jumbo.
+This step accomplishes the following:
+
+- Installs backend dependencies
+- Configures the Medusa storefront
+- Sets up Hyperswitch integration
+
+### 3. Configure Environment Variables
+
+Navigate to the storefront directory:
+
+```bash
+cd hyperswitch-medusa-storefront
+```
+
+Open the `.env` file and add the following credentials:
+
+```env
+NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=your_medusa_key
+NEXT_PUBLIC_HYPERSWITCH_KEY=your_hyperswitch_key
+```
+
+#### Obtaining Credentials:
+
+- **Hyperswitch Key**:
+  - Log in to your Hyperswitch Dashboard
+  - Navigate to Settings
+  - Generate or locate your API key
+- **Medusa Publishable Key**:
+  - Refer to the below video
+
+### 4. Start the Application
+
+Return to the project root and start the backend:
+
+```bash
+cd ..
+npm run start
+```
+
+Then, in a separate terminal, launch the storefront:
+
+```bash
+cd hyperswitch-medusa-storefront
+npm run dev
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Dependency Conflicts**
+   - Ensure all dependencies are correctly installed
+   - Run `npm install` to resolve any missing packages
+2. **Configuration Errors**
+   - Double-check your `.env` file credentials
+   - Verify API keys are correctly copied
+   - Ensure no extra spaces or characters are present
+3. **Runtime Errors**
+   - Check console output for specific error messages
+   - Verify Node.js and npm versions meet the requirements
+
+## Documentation and Support
+
+- [Medusa Documentation](https://docs.medusajs.com/)
+- [Hyperswitch Documentation](https://docs.hyperswitch.io/)
+- [Project Repository](https://github.com/Ayyanaruto/medusa-payment-hyperswitch)
