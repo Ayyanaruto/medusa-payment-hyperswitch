@@ -1,5 +1,6 @@
 const { Client } = require("pg");
 const { exec } = require("child_process");
+const chalk = require("chalk");
 require("dotenv").config();
 
 async function checkDatabaseConnection() {
@@ -20,14 +21,15 @@ async function checkDatabaseConnection() {
     console.log("✓ Database is responding");
 
     // Run migrations and seed the database
+    console.log(chalk.blue("Running migrations and seeding the database, please wait..."));
     exec("npx medusa db:migrate && npm run seed", (error, stdout, stderr) => {
       if (error) {
-        console.error(`✗ Error running migrations or seeding: ${error.message}`);
-        process.exit(1);
+      console.error(chalk.red(`✗ Error running migrations or seeding: ${error.message}`));
+      process.exit(1);
       }
-      console.log(stdout);
-      console.error(stderr);
-      console.log("✓ Migrations and seeding completed successfully");
+      console.log(chalk.green(stdout));
+      console.error(chalk.yellow(stderr));
+      console.log(chalk.green("✓ Migrations and seeding completed successfully"));
       client.end();
       process.exit(0);
     });
