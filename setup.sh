@@ -36,7 +36,7 @@ setup_project() {
     log_info "Checking prerequisites..."
 
     # Check required tools
-    for cmd in git npm psql; do
+    for cmd in git npm psql yarn; do
         if ! command -v $cmd &> /dev/null; then
             log_error "$cmd is not installed"
             exit 1
@@ -47,6 +47,13 @@ setup_project() {
     log_info "Installing project dependencies..."
     npm install --force || {
         log_error "Failed to install dependencies"
+        exit 1
+    }
+
+    # Additional dependencies installation
+    log_info "Installing additional dependencies..."
+    yarn add medusa-react @tanstack/react-query@4.22 @medusajs/medusa || {
+        log_error "Failed to install additional dependencies"
         exit 1
     }
 
@@ -70,8 +77,28 @@ setup_project() {
 
     # Export database configuration for check-db.js
     export DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME
+    #CREATE DATABASE
+    log_info "Creating Database..."
+    psql -U $DB_USER -c "CREATE DATABASE $DB_NAME" || {
+        log_error "Failed to create database"
+        exit 1
+    }
 
-    # Create .env file and HYPERSWITCH_SECRET_KEY's value
+    # Run database migrations
+    log_info "Running database migrations..."
+    npx run db:migrate || {
+        log_error "Failed to run database migrations"
+        exit 1
+    }
+
+    # Seed database
+    log_info "Seeding database..."
+    npm run seed || {
+        log_error "Failed to seed database"
+        exit 1
+    }
+
+    # Create .env file if database error keep DB_NAME empty
     log_info "Creating .env file..."
     cat > .env << EOL
 STORE_CORS=http://localhost:8000,https://docs.medusajs.com
@@ -82,7 +109,7 @@ JWT_SECRET=supersecret
 COOKIE_SECRET=supersecret
 DB_NAME=${DB_NAME}
 DATABASE_URL=postgres://postgres@localhost/$DB_NAME
-HYPERSWITCH_SECRET_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+HYPERSWITCH_SECRET_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")
 EOL
 
     # Clone repository
