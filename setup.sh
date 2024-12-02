@@ -24,6 +24,20 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Function to display a progress bar
+progress_bar() {
+    local duration=$1
+    already_done() { for ((done=0; done<$elapsed; done++)); do printf "▇"; done }
+    remaining() { for ((remain=$elapsed; remain<$duration; remain++)); do printf " "; done }
+    percentage() { printf "| %s%%" $(( (($elapsed)*100)/($duration)*100/100 )); }
+    for (( elapsed=1; elapsed<=$duration; elapsed++ )); do
+        already_done; remaining; percentage
+        sleep 0.1
+        printf "\r"
+    done
+    printf "\n"
+}
+
 # Main setup function
 setup_project() {
     # Clear screen
@@ -31,7 +45,6 @@ setup_project() {
 
     # Welcome message
     echo -e "${MAGENTA}
-
    ╔═══════════════════════════════════════════════╗
    ║        Welcome to HyperSwitch + Medusa        ║
    ║         Payment Integration Setup Tool        ║
@@ -40,6 +53,7 @@ setup_project() {
 
     # Prerequisite checks
     log_info "🔍 Checking prerequisites..."
+    progress_bar 30
 
     # Check required tools
     for cmd in git npm psql yarn; do
@@ -51,6 +65,7 @@ setup_project() {
 
     # Dependency installation
     log_info "📦 Installing project dependencies..."
+    progress_bar 50
     npm install --force || {
         log_error "❌ Failed to install dependencies. Please check your npm setup."
         exit 1
@@ -58,6 +73,7 @@ setup_project() {
 
     # Additional dependencies installation
     log_info "📦 Installing additional dependencies..."
+    progress_bar 50
     yarn add medusa-react @tanstack/react-query@4.22 @medusajs/medusa || {
         log_error "❌ Failed to install additional dependencies. Please check your yarn setup."
         exit 1
@@ -116,10 +132,29 @@ EOL
 
     # Clone repository
     log_info "🔄 Cloning HyperSwitch Medusa Storefront repository..."
+    progress_bar 30
     git clone https://github.com/Ayyanaruto/hyperswitch-medusa-storefront.git || {
         log_error "❌ Failed to clone repository. Please check your internet connection."
         exit 1
     }
+
+    # After cloning change directory to hyperswitch-medusa-storefront
+    cd hyperswitch-medusa-storefront
+    git checkout medusa-starter-hyperswitch@v2 || {
+        log_error "❌ Failed to checkout branch. Please check your git setup."
+        exit 1
+    }
+
+    # Install dependencies
+    log_info "📦 Installing storefront dependencies..."
+    progress_bar 50
+    yarn add || {
+        log_error "❌ Failed to install dependencies. Please check your yarn setup."
+        exit 1
+    }
+
+    # Change back to root directory
+    cd ..
 
     # Final success message
     echo -e "\n${GREEN}✨ Setup Completed Successfully! ✨${NC}"
