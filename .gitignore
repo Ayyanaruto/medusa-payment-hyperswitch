@@ -4,7 +4,6 @@
 /uploads
 /node_modules
 yarn-error.log
-
 .idea
 
 coverage
@@ -15,7 +14,7 @@ coverage
 medusa-db.sql
 build
 .cache
-
+!yarn.lock
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
