@@ -73,13 +73,22 @@ setup_project() {
     read -p "Enter database port (default: 5432): " DB_PORT
     DB_PORT=${DB_PORT:-5432}
 
-    read -p "Enter database username: " DB_USER
+    read -p "Enter database username (default: postgres): " DB_USER
+    DB_USER=${DB_USER:-postgres}
 
     read -sp "Enter database password: " DB_PASSWORD
     echo  # New line
 
-    read -p "Enter database name (default: medusa_store): " DB_NAME
-    DB_NAME=${DB_NAME:-medusa_store}
+    while true; do
+        read -p "Enter database name (default: medusa_store): " DB_NAME
+        DB_NAME=${DB_NAME:-medusa_store}
+
+        if psql -U $DB_USER -lqt | cut -d \| -f 1 | grep -qw $DB_NAME; then
+            log_error "❌ Database $DB_NAME already exists. Please choose a different name."
+        else
+            break
+        fi
+    done
 
     # Export database configuration for check-db.js
     export DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME
